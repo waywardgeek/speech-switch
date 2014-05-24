@@ -9,7 +9,7 @@ EXAMPLE=engines/sh_example
 
 ENGINES=$(ESPEAK) $(IBMTTS) $(PICO) $(EXAMPLE)
 
-all: engines $(ENGINES)
+all: engines $(ENGINES) sw_say
 
 $(EXAMPLE): server.c example_engine.c engine.h
 	$(CC) -O2 -I . -o $(EXAMPLE) example_engine.c server.c -lespeak
@@ -23,6 +23,14 @@ $(IBMTTS): server.c ibmtts_engine.c engine.h
 
 $(PICO): pico_engine.c server.c engine.h
 	gcc -Wall -O2 -o $(PICO) pico_engine.c server.c -lttspico -lpopt -lm
+
+sw_say: sw_say.c swdatabase.c swdatabase.h
+	gcc -Wall -O2 -o sw_say sw_say.c swdatabase.c -lddutil
+
+swdatabase.c: swdatabase.h
+
+swdatabase.h: SpeechSwitch.dd
+	datadraw SpeechSwitch.dd
 
 engines:
 	mkdir engines
