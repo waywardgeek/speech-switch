@@ -1,0 +1,51 @@
+The files in this directory were written by me, Bill Cox in 2011.  I
+place all of this code in the public domain.  Feel free to do with it as you
+wish.  If you have questions, I can be contacted as waywardgeek@gmail.com.
+
+I also wrote ibmtts_engine.c, in 2011, and would put it in the public domain,
+except that some code in ibmtts_engine.c was copied from speech-dispatcher's
+ibmtts.c file.  Therefore, I release ibmtts_engine.c under the LGPL v2.1
+license, as required by the terms of the license in ibmtts.c.  If you want to
+write a new engine, and do not want to release source code as LGPL requires,
+please use the espeak_engine.c file as your starting point.  The functions you
+need to implement are somewhat documented in engine.h.
+
+In windows, commercial engines should be with MinGW, to avoid the cygwin GPL
+copyright (MinGW is LGPL).  sh_espeak and sh_pico were compiled with cygwin.
+The libespeak.a and libttspico.a libraries were built with Cygwin.
+
+Building in Ubuntu or Debian
+----------------------------
+To compile the engines in Ubuntu or Debian, first install build dependencies for
+svox-1.0 and espeak.  Preferably, you will also have a valid license of voxin,
+so you can build the ibmtts engine.  To compile all the linux engines, type
+'make linux'.  The resulting executables should work in theory on other versions
+of Linux as well.
+
+Building in Windows
+-------------------
+Open source engines are built with cygwin, which you can download and install
+from http://www.cygwin.com.  I just install all the packages.
+
+For espeak, download the latest tar-ball from
+http://espeak.sourceforge.net/download.html.  Untar it, go to the
+espeak-whatever/src directory, and edit Makefile.  Change this line:
+
+AUDIO = portaudio
+
+to
+
+#AUDIO = portaudio
+
+Then, type make libespeak.a.  For pico, download the latest source code from the
+Debian project at http://packages.debian.org/source/unstable/svox.  It's a
+standard Linux style project that you build in the pico sub-directory of
+svox-whatever.  I had to run autogen.sh in a cygwin bash shell to get it to go,
+but after that, the ./configure and make went ok.  The file we use is in
+.libs/libttspico.a.
+
+For ibmtts, we have to install MinGW and build there.  It's quite straight
+forward, once you have ECI.lib, which I had to build manually.  That code is in
+the eci sub-directory.  It's not the full interface to ECI.DLL, just the
+functions I needed to build the SH engine.  To install MinGW, I followed the
+instructions at http://www.mingw.org/wiki/Getting_Started
