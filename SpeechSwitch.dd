@@ -1,0 +1,50 @@
+module SpeechSwitch sw
+
+enum MessageType
+    SW_SPEAK
+    SW_MARK
+    SW_SETSPEED
+    SW_SETPITCH
+    SW_SETVOLUME
+    SW_AUDIO
+
+class Root
+
+class User
+    uint32 id
+
+class Mengine
+
+// Engines are not shared between users.  A new instance is launched for each.
+class Engine
+    Voice voice
+    Language langauge
+    float pitch
+    float speed
+    float volume
+
+class Voice
+
+class Queue
+
+class Message
+    MessageType type
+    array uint8 data
+    union type
+        uint32 markNum: SW_MARK
+        float value: SW_SETSPEED SW_SETPITCH SW_SETVOLUME
+
+class Language
+
+relationship Root User hashed id mandatory
+relationship Root Engine doubly_linked mandatory
+relationship Mengine Engine doubly_linked mandatory
+relationship Mengine Voice hashed mandatory
+relationship Language Voice doubly_linked mandatory
+relationship User Engine
+relationship Root:In Queue:In cascade
+relationship Root:Out Queue:Out cascade
+relationship Root:Audio Queue:Audio cascade
+relationship Queue Message doubly_linked mandatory
+relationship User Message doubly_linked mandatory // Owner of message
+relationship Root Language hashed mandatory
