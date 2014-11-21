@@ -9,13 +9,13 @@ EXAMPLE=engines/sh_example
 
 ENGINES=$(ESPEAK) $(IBMTTS) $(PICO) $(EXAMPLE)
 
-all: engines $(ENGINES) sw_say
+all: engines $(ENGINES) sw-say
 
 $(EXAMPLE): server.c example_engine.c engine.h
 	$(CC) -O2 -I . -o $(EXAMPLE) example_engine.c server.c -lespeak
  
 $(ESPEAK): server.c espeak_engine.c engine.h
-	$(CC) $(CFLAGS) -O2 -o $(ESPEAK) server.c espeak_engine.c -lespeak -lm -lpthread
+	$(CC) $(CFLAGS) -O2 -o $(ESPEAK) server.c espeak_engine.c -lespeak -lm -pthread
 
 # Note that this cannot be compiled with -O2 due to unknown bugs.
 $(IBMTTS): server.c ibmtts_engine.c engine.h
@@ -24,8 +24,8 @@ $(IBMTTS): server.c ibmtts_engine.c engine.h
 $(PICO): pico_engine.c server.c engine.h
 	gcc -Wall -O2 -o $(PICO) pico_engine.c server.c -lttspico -lpopt -lm
 
-sw_say: sw_say.c swdatabase.c swdatabase.h
-	gcc -Wall -O2 -o sw_say sw_say.c swdatabase.c -lddutil
+sw-say: sw-say.c swdatabase.c swdatabase.h
+	gcc -Wall -O2 -o sw-say sw-say.c swdatabase.c -lddutil
 
 swdatabase.c: swdatabase.h
 
@@ -36,4 +36,4 @@ engines:
 	mkdir engines
 
 clean:
-	rm -f $(ENGINES)
+	rm -f $(ENGINES) sw-say
