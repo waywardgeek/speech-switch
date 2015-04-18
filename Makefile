@@ -2,10 +2,10 @@
 CFLAGS=-Wall --std=c99
 CC=gcc
 
-ESPEAK=engines/sh_espeak
-IBMTTS=engines/sh_ibmtts
-PICO=engines/sh_picotts
-EXAMPLE=engines/sh_example
+ESPEAK=engines/sw_espeak
+IBMTTS=engines/sw_ibmtts
+PICO=engines/sw_picotts
+EXAMPLE=engines/sw_example
 
 ENGINES=$(ESPEAK) $(IBMTTS) $(PICO) $(EXAMPLE)
 

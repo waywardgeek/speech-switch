@@ -19,8 +19,12 @@ Building in Ubuntu or Debian
 To compile the engines in Ubuntu or Debian, first install build dependencies for
 svox-1.0 and espeak.  Preferably, you will also have a valid license of voxin,
 so you can build the ibmtts engine.  To compile all the linux engines, type
-'make linux'.  The resulting executables should work in theory on other versions
+'make'.  The resulting executables should work in theory on other versions
 of Linux as well.
+
+On Ubuntu, I install the base libraries with:
+
+$ sudo apt-get install libespeak-dev libttspico-dev libsonic-dev
 
 Building in Windows
 -------------------
