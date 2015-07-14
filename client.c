@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "swutil.h"
-#include "client.h"
+#include "swclient.h"
 
 struct swEngineSt {
     char *name;
