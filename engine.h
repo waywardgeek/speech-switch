@@ -6,6 +6,8 @@
 #define false 0
 #endif
 
+#include "swutil.h"
+
 // Initialize the engine.  synthdataPath is the path to your engine's data directory.
 bool initializeEngine(char *synthdataPath);
 // Close the TTS Engine.
@@ -44,14 +46,6 @@ bool setSSML(bool value);
 // NULL if your synthesizer does not have voice variants.
 char **getVoiceVariants(int *numVariants);
 bool setVoiceVariant(char *variant);
-
-// These utilities are provided simply to aid portability.
-char **listDirectory(char *dirName, int *numFiles);
-char *copyString(char *string);
-char *catStrings(char *string1, char *string2);
-// This function frees a voice list created with getVoices.
-void freeStringList(char **stringList, int numStrings);
-char **copyStringList(char **stringList, int numStrings);
 
 // Some older engines like voxin don't support UTF-8.  These engines should call
 // this function from their initializeEngine routine to switch to ANSI.  The

@@ -249,7 +249,7 @@ bool setPitch(float pitch)
     return eciSetVoiceParam(eciHandle, 0, eciPitchBaseline, newPitch) != -1;
 }
 
-// Set the punctuation leve, which will be PUNCT_NONE, PUNCT_SOME, PUNCT_MOST, or PUNCT_ALL.
+// Set the punctuation level, which will be PUNCT_NONE, PUNCT_SOME, PUNCT_MOST, or PUNCT_ALL.
 bool setPunctuationLevel(int level)
 {
     return true; // No support for punctuation levels

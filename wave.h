@@ -7,10 +7,10 @@
 
 /* Support for reading and writing wave files. */
 
-typedef struct waveFileStruct *waveFile;
+typedef struct WaveFileStruct *WaveFile;
 
-waveFile openInputWaveFile(char *fileName, int *sampleRate, int *numChannels);
-waveFile openOutputWaveFile(char *fileName, int sampleRate, int numChannels);
-int closeWaveFile(waveFile file);
-int readFromWaveFile(waveFile file, short *buffer, int maxSamples);
-int writeToWaveFile(waveFile file, short *buffer, int numSamples);
+WaveFile openInputWaveFile(char *fileName, int *sampleRate, int *numChannels);
+WaveFile openOutputWaveFile(char *fileName, int sampleRate, int numChannels);
+int closeWaveFile(WaveFile file);
+int readFromWaveFile(WaveFile file, short *buffer, int maxSamples);
+int writeToWaveFile(WaveFile file, short *buffer, int numSamples);

@@ -1,5 +1,6 @@
 #include "client.h"
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -18,6 +19,7 @@ static void usage(void) {
         "-e engine      -- name of supported engine, like espeak picotts or ibmtts\n"
         "-f textFile    -- text file to be spoken\n"
         "-p pitch       -- speech pitch (1.0 is normal)\n"
+        "-r             -- raw output, meaning PCM samples\n"
         "-s speed       -- speech speed (1.0 is normal)\n"
         "-v voice       -- name of voice to use\n"
         "-w waveFile    -- output wave file rather than playing sound\n");
@@ -36,16 +38,17 @@ static void addText(char *p) {
 }
 
 // Speak the text.  Do this in a stream oriented way.
-static speakText(char *waveFileName, char *text, char *textFileName,
+static speakText(char *waveFileName, bool raw, char *text, char *textFileName,
         char *engine, char *voice, double speed, double pitch) {
     if(waveFileName == NULL) {
         fprintf(stderr, "Currently, you must supply the -w flag\n");
         return 1;
     }
     // Open the output wave file.
-    waveFile outfile = openOutputWaveFile(waveFileName, sampleRate, 1);
     uint32_t numSamples, sampleRate;
+    WaveFile outfile = openOutputWaveFile(waveFileName, sampleRate, 1);
     int16_t samples = genSamples(text, engine, &numSamples, &sampleRate);
+    /*
     // Now change the speed and pitch
     if(speed < 1.0) {
         samples = realloc(samples, (size_t)(2*2*1.1*numSamples/speed));
@@ -53,8 +56,11 @@ static speakText(char *waveFileName, char *text, char *textFileName,
     uint32_t numSamples = sonicChangeShortSpeed(samples, numSamples, speed, pitch,
         1.0, 1.0, false, sampleRate, 1);
     // Now play it
-    system("sw_play -r %d -f
+    */
+
+    writeToWaveFile(outfile, samples, int numSamples);
     free(samples);
+}
 
 int main(int argc, char *argv[]) {
     char *engineName = "espeak"; // It's always there!
@@ -63,12 +69,13 @@ int main(int argc, char *argv[]) {
     double pitch = 1.0;
     char *waveFileName = NULL;
     char *voiceName = NULL;
+    bool raw = false;
     textLen = 128;
     textPos = 0;
     text = calloc(textLen, sizeof(char));
     addText("Hello, World!");
     int opt;
-    while ((opt = getopt(argc, argv, "e:f:p:s:v:w:")) != -1) {
+    while ((opt = getopt(argc, argv, "e:f:p:rs:v:w:")) != -1) {
         switch (opt) {
         case 'e':
             engineName = optarg;
@@ -83,6 +90,9 @@ int main(int argc, char *argv[]) {
                     "2.0 is twice the pitch , 0.5 is half\");
                 usage();
             }
+            break;
+        case 'r':
+            raw = true;
             break;
         case 's':
             speed = atof(optarg);
@@ -115,6 +125,6 @@ int main(int argc, char *argv[]) {
             addText(argv[i]);
         }
     }
-    speakText(waveFileName, text, textFileName, engine, voice, speed, pitch);
+    speakText(waveFileName, raw, text, textFileName, engine, voice, speed, pitch);
     return 0;
 }
