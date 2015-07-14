@@ -14,7 +14,7 @@ static int sampleRate;
 static int synthCallback(short *data, int numSamples, espeak_EVENT *events)
 {
     if(numSamples > 0) {
-        if(!processAudio(data, numSamples)) {
+        if(!swProcessAudio(data, numSamples)) {
             return 1; // Abort synthesis
         }
     }
@@ -22,7 +22,7 @@ static int synthCallback(short *data, int numSamples, espeak_EVENT *events)
 }
 
 // Initialize the engine.
-bool initializeEngine(char *synthdataPath)
+bool swInitializeEngine(char *synthdataPath)
 {
     if(synthdataPath == NULL) {
         printf("The espeak engine requires a synthdataPath\n");
@@ -37,18 +37,18 @@ bool initializeEngine(char *synthdataPath)
 }
 
 // Close the TTS Engine.
-bool closeEngine(void)
+bool swCloseEngine(void)
 {
     return espeak_Terminate() == EE_OK;
 }
 
 // Return the sample rate in Hz
-int getSampleRate(void) {
+uint32_t swGetSampleRate(void) {
     return sampleRate;
 }
 
 // Return an array of char pointers representing names of supported voices.
-char **getVoices(int *numVoices)
+char **swGetVoices(uint32_t *numVoices)
 {
     char **voices;
     const char *language, *name;
@@ -73,50 +73,50 @@ char **getVoices(int *numVoices)
 }
 
 // Select a voice.
-bool setVoice(char *voice)
+bool swSetVoice(char *voice)
 {
     return espeak_SetVoiceByName(voice) == EE_OK;
 }
 
 // Assume SpeechHub will do this for us.
-bool setSpeed(float speed)
+bool swSetSpeed(float speed)
 {
     return false;
 }
 
 // Assume SpeechHub will do this for us.
-bool setPitch(float pitch)
+bool swSetPitch(float pitch)
 {
     return false;
 }
 
 // Assume SpeechHub will do this for us.
-bool setPunctuationLevel(int level)
+bool swSetPunctuationLevel(int level)
 {
     return false;
 }
 
 // Enable or disable SSML support.
-bool setSSML(bool value)
+bool swSetSSML(bool value)
 {
     return false;
 }
 
 // Speak the text.  Block until finished.
-bool speakText(char *text)
+bool swSpeakText(char *text)
 {
     return espeak_Synth(text, strlen(text) + 1, 0, POS_CHARACTER, 0,
         espeakCHARS_UTF8, NULL, NULL) == EE_OK;
 }
 
 // Don't support variants.
-char **getVoiceVariants(int *numVariants)
+char **swGetVoiceVariants(uint32_t *numVariants)
 {
     return NULL;
 }
 
 // Dont support variants.
-bool setVoiceVariant(char *variant)
+bool swSetVoiceVariant(char *variant)
 {
     return false;
 }

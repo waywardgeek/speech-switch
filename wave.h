@@ -7,7 +7,7 @@
 
 /* Support for reading and writing wave files. */
 
-typedef struct WaveFileStruct *WaveFile;
+typedef struct swWaveFileStruct *swWaveFile;
 
 swWaveFile swOpenInputWaveFile(char *fileName, int *sampleRate, int *numChannels);
 swWaveFile swOpenOutputWaveFile(char *fileName, int sampleRate, int numChannels);

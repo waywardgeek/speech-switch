@@ -4,8 +4,9 @@
 #include <strings.h>
 #include <dirent.h>
 #include <stdarg.h>
+#include <unistd.h>
 
-#include "swutil.h"
+#include "util.h"
 
 // Just make a copy of a string.
 char *swCopyString(char *string)
@@ -27,7 +28,7 @@ char *swCatStrings(char *string1, char *string2)
 }
 
 // This utility is provided to list directory entries in a portable way.
-char **swListDirectory(char *dirName, int *numFiles)
+char **swListDirectory(char *dirName, uint32_t *numFiles)
 {
     DIR *dir;
     struct dirent *entry;
@@ -57,14 +58,14 @@ char **swListDirectory(char *dirName, int *numFiles)
         while(!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) {
             entry = readdir(dir);
         }
-        fileList[i] = copyString(entry->d_name);
+        fileList[i] = swCopyString(entry->d_name);
     }
     (void)closedir(dir);
     return fileList;
 }
 
 // This function, frees a voice list created with getVoices.
-void swFreeStringList(char **stringList, int numStrings)
+void swFreeStringList(char **stringList, uint32_t numStrings)
 {
     int i;
 
@@ -75,15 +76,33 @@ void swFreeStringList(char **stringList, int numStrings)
 }
 
 // Make a copy of a string list.
-char **swCopyStringList(char **stringList, int numStrings)
+char **swCopyStringList(char **stringList, uint32_t numStrings)
 {
     char **newList = (char **)calloc(numStrings, sizeof(char*));
     int i;
 
     for(i = 0; i < numStrings; i++) {
-        newList[i] = copyString(stringList[i]);
+        newList[i] = swCopyString(stringList[i]);
     }
     return newList;
+}
+
+// Read up to a newline or EOF.  Do not include the newline character.
+// The result must be freed by the caller.
+char *swReadLine(FILE *file) {
+    uint32_t bufSize = 42;
+    char *buf = calloc(bufSize, sizeof(char));
+    uint32_t pos = 0;
+    int c = getc(file);
+    while(c != EOF && c != '\n') {
+        if(pos == bufSize) {
+            bufSize <<= 1;
+            buf = realloc(buf, bufSize);
+        }
+        buf[pos++] = c;
+        c = getc(file);
+    }
+    return buf;
 }
 
 #define MAXARGS 42
@@ -92,17 +111,17 @@ char **swCopyStringList(char **stringList, int numStrings)
 // child process simply uses stdin/stdout for communication.  The arguments to
 // the child process should be passed as additional parameters, ending with a
 // NULL.
-void swForkWithStdio(char *exePath, FILE **fin, FILE **fout, ...) {
+int swForkWithStdio(char *exePath, FILE **fin, FILE **fout, ...) {
     // Build the parameter list
     char *args[MAXARGS];
     va_list ap;
     va_start(ap, fout);
-    uint32_t i = 0;
+    int i = 0;
     args[i++] = exePath;
     char *param = va_arg(ap, char *);
     while(param != NULL) {
-        if(i+1 == MAXARGS]) {
-            fprintf("Too many arguments to swForkWithStdio\n");
+        if(i+1 == MAXARGS) {
+            fprintf(stderr, "Too many arguments to swForkWithStdio\n");
             exit(1);
         }
         args[i++] = param;
@@ -113,8 +132,10 @@ void swForkWithStdio(char *exePath, FILE **fin, FILE **fout, ...) {
 
     // Create pips and fork
     int pipes[2][2];
-    pipe(pipes[0]);
-    pipe(pipes[1]);
+    if(pipe(pipes[0]) != 0 || pipe(pipes[1]) != 0) {
+        fprintf(stderr, "Unable to allocate pipes\n");
+        exit(1);
+    }
     int pid = fork();
     if(pid == 0) {
         // Child process: overwrite stdin and stdout
@@ -123,13 +144,12 @@ void swForkWithStdio(char *exePath, FILE **fin, FILE **fout, ...) {
         dup2(pipes[0][1], STDOUT_FILENO);
         dup2(pipes[1][0], STDIN_FILENO);
         // Exec the program
-        execv(exePath, exePath, args);
+        execv(exePath, args);
     }
 
     // Parent program.  Create fin/fout and return.
     close(pipes[0][1]);
     close(pipes[1][0]);
-    char buffer[100];
     *fin = fdopen(pipes[0][0], "r");
     *fout = fdopen(pipes[1][1], "w");
     return pid;

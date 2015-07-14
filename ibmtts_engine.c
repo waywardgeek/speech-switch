@@ -99,7 +99,7 @@ static enum ECICallbackReturn synthCallback(ECIHand eciHandle, enum ECIMessage m
     long lparam, void* data)
 {
     if(msg == eciWaveformBuffer) {
-        if(!cancelled && !processAudio(buffer, lparam)) {
+        if(!cancelled && !swProcessAudio(buffer, lparam)) {
             cancelled = true; // eciStop does not seem to work when called from Windows, even on a separate thread.
             return eciDataAbort; // The docs say this cancels synthesis, but it doesn't
         }
@@ -115,10 +115,10 @@ static void setDefaultPitchAndSpeed(void)
 }
 
 // Initialize the engine.
-bool initializeEngine(char *synthdataPath)
+bool swInitializeEngine(char *synthdataPath)
 {
     // ibmtts Only supports ANSI.
-    switchToANSI();
+    swSwitchToANSI();
     cancelled = false;
     eciHandle = eciNew();
     if(eciHandle == NULL_ECI_HAND) {
@@ -131,14 +131,14 @@ bool initializeEngine(char *synthdataPath)
 }
 
 // Close the TTS Engine.
-bool closeEngine(void)
+bool swCloseEngine(void)
 {
     eciDelete(eciHandle);
     return true;
 }
 
 // Return the sample rate.
-int getSampleRate(void)
+uint32_t swGetSampleRate(void)
 {
     switch(eciGetParam(eciHandle, eciSampleRate)) {
     case 0: return 8000;
@@ -162,17 +162,17 @@ static eciLocale findLocaleFromID(enum ECILanguageDialect langID)
 }
 
 // Return an array of char pointers representing names of supported voices.
-char **getVoices(int *numVoices)
+char **swGetVoices(uint32_t *numVoices)
 {
     enum ECILanguageDialect language[NUM_LANGUAGES];
     eciLocale locale;
     char **voices, *p;
-    int i;
+    uint32_t i;
 
     // For some reason, the first call fails in MSVC
     *numVoices = NUM_LANGUAGES;
-    eciGetAvailableLanguages(NULL, numVoices);
-    if(eciGetAvailableLanguages(language, numVoices) != 0) {
+    eciGetAvailableLanguages(NULL, (int *)numVoices);
+    if(eciGetAvailableLanguages(language, (int *)numVoices) != 0) {
         error();
         *numVoices = 0;
         return NULL;
@@ -210,7 +210,7 @@ static eciLocale findLocaleFromName(char *name)
 }
 
 // Select a voice.
-bool setVoice(char *voice)
+bool swSetVoice(char *voice)
 {
     eciLocale locale = findLocaleFromName(voice);
 
@@ -218,7 +218,7 @@ bool setVoice(char *voice)
 }
 
 // Set the speech speed.  Speed is from -100.0 to 100.0, and 0 is the default.
-bool setSpeed(float speed)
+bool swSetSpeed(float speed)
 {
     int ibmttsSpeed;
     float minSpeed = 0.0f; // In words per minute
@@ -234,7 +234,7 @@ bool setSpeed(float speed)
 }
 
 // Set the pitch.  0 means default, -100 is min pitch, and 100 is max pitch.
-bool setPitch(float pitch)
+bool swSetPitch(float pitch)
 {
     float minPitch = 0.0f;
     float maxPitch = 100.0f;
@@ -250,13 +250,13 @@ bool setPitch(float pitch)
 }
 
 // Set the punctuation level, which will be PUNCT_NONE, PUNCT_SOME, PUNCT_MOST, or PUNCT_ALL.
-bool setPunctuationLevel(int level)
+bool swSetPunctuationLevel(int level)
 {
     return true; // No support for punctuation levels
 }
 
 // Enable or disable SSML support.
-bool setSSML(bool value)
+bool swSetSSML(bool value)
 {
     return true; // No support for SSML
 }
@@ -264,7 +264,7 @@ bool setSSML(bool value)
 // Speak the text.  For some reason, we have to call etiSynchronize here, making
 // it impossible to process audio output while synthesizing in small blocks, or
 // to abort.
-bool speakText(char *text)
+bool swSpeakText(char *text)
 {
     cancelled = false;
     eciAddText(eciHandle, text);
@@ -275,14 +275,14 @@ bool speakText(char *text)
 
 // List voice variants.  This is for formant synths, and is typically stuff
 // like MALE2, or CHILD1, though it can be anything.
-char **getVoiceVariants(int *numVariants)
+char **swGetVoiceVariants(uint32_t *numVariants)
 {
     *numVariants = ECI_PRESET_VOICES + 1;
-    return copyStringList(variants, ECI_PRESET_VOICES + 1);
+    return swCopyStringList(variants, ECI_PRESET_VOICES + 1);
 }
 
 // Select a voice variant.
-bool setVoiceVariant(char *variant)
+bool swSetVoiceVariant(char *variant)
 {
     int i;
     bool result;
@@ -297,8 +297,8 @@ bool setVoiceVariant(char *variant)
             if(result) {
                 // Ibmtts resets speed and pitch to default when setting a voice variant.
                 setDefaultPitchAndSpeed();
-                setPitch(currentPitch);
-                setSpeed(currentSpeed);
+                swSetPitch(currentPitch);
+                swSetSpeed(currentSpeed);
             }
             return result;
         }

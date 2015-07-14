@@ -1,12 +1,10 @@
-#include "speechswitch.h"
-
 #include <stdbool.h>
 #include <stdint.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#incldue <sonic.h>
+#include <sonic.h>
 #include "speechswitch.h"
 
 static char *text;
@@ -39,7 +37,7 @@ static void addText(char *p) {
 
 // This function receives samples from the speech synthesis engine.  If we
 // return false, speech synthesis is cancelled.
-static bool speechCallback(swEngine engine, uint16_t *samples, uint32_t numSamples,
+static bool speechCallback(swEngine engine, int16_t *samples, uint32_t numSamples,
         void *callbackContext) {
     swWaveFile outWaveFile = *(swWaveFile *)callbackContext;
     swWriteToWaveFile(outWaveFile, samples, numSamples);
@@ -47,22 +45,22 @@ static bool speechCallback(swEngine engine, uint16_t *samples, uint32_t numSampl
 }
 
 // Speak the text.  Do this in a stream oriented way.
-static speakText(char *waveFileName, char *text, char *textFileName,
+static void speakText(char *waveFileName, char *text, char *textFileName,
         char *engineName, char *voice, double speed, double pitch) {
     if(waveFileName == NULL) {
         fprintf(stderr, "Currently, you must supply the -w flag\n");
-        return 1;
+        exit(1);
     }
     // Start the speech engine
     char *enginesDirectory = "../lib/speechswitch/engines";
     // TODO: deal with data directory
-    WaveFile outWaveFile;
+    swWaveFile outWaveFile;
     swEngine engine = swStart(enginesDirectory, engineName, NULL, speechCallback, &outWaveFile);
     // Open the output wave file.
     uint32_t sampleRate = swGetSampleRate(engine);
-    outWaveFile = wvOpenOutputWaveFile(waveFileName, sampleRate, 1);
+    outWaveFile = swOpenOutputWaveFile(waveFileName, sampleRate, 1);
     swSpeak(engine, text, true);
-    swCloseWaveFile(swWaveFile file);
+    swCloseWaveFile(outWaveFile);
 }
 
 int main(int argc, char *argv[]) {
@@ -89,7 +87,7 @@ int main(int argc, char *argv[]) {
             pitch = atof(optarg);
             if(pitch == 0.0) {
                 fprintf(stderr, "Pitch must be a floating point value.\n"
-                    "2.0 is twice the pitch , 0.5 is half\");
+                    "2.0 is twice the pitch , 0.5 is half\n");
                 usage();
             }
             break;
@@ -113,8 +111,8 @@ int main(int argc, char *argv[]) {
         }
     }
     if (optind < argc) {
-        if(textFile != NULL) {
-            fprintf("Unexpected text on command line while using -f flag\n");
+        if(textFileName != NULL) {
+            fprintf(stderr, "Unexpected text on command line while using -f flag\n");
             usage();
         }
         // Speak the command line parameters
@@ -124,6 +122,6 @@ int main(int argc, char *argv[]) {
             addText(argv[i]);
         }
     }
-    speakText(waveFileName, text, textFileName, engine, voice, speed, pitch);
+    speakText(waveFileName, text, textFileName, engineName, voiceName, speed, pitch);
     return 0;
 }

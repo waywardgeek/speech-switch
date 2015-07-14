@@ -15,19 +15,22 @@ typedef enum {
     PUNCT_SOME=1,
     PUNCT_MOST=2,
     PUNCT_ALL=3
-} swPuncuationLevel;
+} swPunctuationLevel;
 
 struct swEngineSt;
 
 typedef struct swEngineSt *swEngine;
 
-typedef bool (*callback)(swEngine engine, uint16_t *samples, uint32_t numSamples,
-    void *callbackContext)) swCallback;
+typedef unsigned char uchar;
+
+
+typedef bool (*swCallback)(swEngine engine, int16_t *samples, uint32_t numSamples,
+    void *callbackContext);
 
 // These functions start/stop engines and synthesize speech.
 
 // List available engines.
-char **swListEngines(char *enginesDirectory);
+char **swListEngines(char *enginesDirectory, uint32_t *numEngines);
 // Create and initialize a new swEngine object, and connect to the speech engine.
 swEngine swStart(char *enginesDirectory, char *engineName, char *engineDataDirectory,
         swCallback callback, void *callbackContext);
@@ -46,9 +49,7 @@ void swCancel(swEngine engine);
 uint32_t swGetSampleRate(swEngine engine);
 // Get a list of supported voices.  The caller can call swFreeStrings to free
 // them.
-char **swGetVoices     - List available voices
-// Free string lists returned by swGetVoices or swGetVariants
-void swFreeStringList(char **stringList, uint32_t numStrings);
+char **swGetVoices(swEngine engine);
 // List available variations on voices.
 char **swGetVariants(swEngine engine);
 // Return the encoding.
@@ -62,7 +63,7 @@ bool swSetPitch(swEngine engine, float pitch);
 // Set the punctuation level: none, some, most, or all.
 bool swSetPunctuation(swPunctuationLevel level);
 // Set the speech speed.  Speed is from -100.0 to 100.0, and 0 is the default.
-swSetSpeed(swEngine engine, float speed);
+bool swSetSpeed(swEngine engine, float speed);
 // Enable or disable ssml support.
 bool swSetSSML(swEngine engine, bool enable);
 // Return the protocol version, Currently 1 for all engines.

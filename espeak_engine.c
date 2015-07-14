@@ -17,7 +17,7 @@ static int ssmlFlag;
 static int synthCallback(short *data, int numSamples, espeak_EVENT *events)
 {
     if(numSamples > 0) {
-        if(!processAudio(data, numSamples)) {
+        if(!swProcessAudio(data, numSamples)) {
             return 1; // Abort synthesis
         }
     }
@@ -25,7 +25,7 @@ static int synthCallback(short *data, int numSamples, espeak_EVENT *events)
 }
 
 // Initialize the engine.
-bool initializeEngine(char *synthdataPath)
+bool swInitializeEngine(char *synthdataPath)
 {
     char *variantsDirName = "espeak-data/voices/!v";
     if(synthdataPath == NULL) {
@@ -37,8 +37,8 @@ bool initializeEngine(char *synthdataPath)
         strcat(variantsDir, "/");
     }
     strcat(variantsDir, variantsDirName);
-    currentVariant = copyString("");
-    currentVoice = copyString("english");
+    currentVariant = swCopyString("");
+    currentVoice = swCopyString("english");
     sampleRate = espeak_Initialize(AUDIO_OUTPUT_SYNCHRONOUS, ESPEAK_BUFLEN, synthdataPath, 0);
     if(sampleRate == -1) {
         return false;
@@ -49,7 +49,7 @@ bool initializeEngine(char *synthdataPath)
 }
 
 // Close the TTS Engine.
-bool closeEngine(void)
+bool swCloseEngine(void)
 {
     free(variantsDir);
     free(currentVoice);
@@ -58,12 +58,12 @@ bool closeEngine(void)
 }
 
 // Return the sample rate in Hz
-int getSampleRate(void) {
+uint32_t swGetSampleRate(void) {
     return sampleRate;
 }
 
 // Return an array of char pointers representing names of supported voices.
-char **getVoices(int *numVoices)
+char **swGetVoices(uint32_t *numVoices)
 {
     char **voices;
     const char *language, *name, *identifier;
@@ -96,23 +96,23 @@ char **getVoices(int *numVoices)
 }
 
 // Select a voice.
-bool setVoice(char *voice)
+bool swSetVoice(char *voice)
 {
     char *fullVoice;
     bool retVal;
 
-    fullVoice = catStrings(voice, currentVariant);
+    fullVoice = swCatStrings(voice, currentVariant);
     retVal = espeak_SetVoiceByName(fullVoice) == EE_OK;
     if(retVal) {
         free(currentVoice);
-        currentVoice = copyString(voice);
+        currentVoice = swCopyString(voice);
     }
     free(fullVoice);
     return retVal;
 }
 
 // Set the speech speed.  Speed is from -100.0 to 100.0, and 0 is the default.
-bool setSpeed(float speed)
+bool swSetSpeed(float speed)
 {
     int espeakSpeed;
     float minSpeed = 80.0f; // In words per minute
@@ -128,7 +128,7 @@ bool setSpeed(float speed)
 }
 
 // Set the pitch.  0 means default, -100 is min pitch, and 100 is max pitch.
-bool setPitch(float pitch)
+bool swSetPitch(float pitch)
 {
     // Translate to espeak's range of 0..100, with 50 as default.
     int espeakPitch = (int)((pitch + 100.0f)/2.0f + 0.5f);
@@ -137,7 +137,7 @@ bool setPitch(float pitch)
 }
 
 // Set the punctuation leve, which will be PUNCT_NONE, PUNCT_SOME, or PUNCT_ALL.
-bool setPunctuationLevel(int level)
+bool swSetPunctuationLevel(int level)
 {
     int espeakLevel;
 
@@ -158,7 +158,7 @@ bool setPunctuationLevel(int level)
 }
 
 // Enable or disable SSML support.
-bool setSSML(bool value)
+bool swSetSSML(bool value)
 {
     if(value) {
         ssmlFlag = espeakSSML;
@@ -169,7 +169,7 @@ bool setSSML(bool value)
 }
 
 // Speak the text.  Block until finished.
-bool speakText(char *text)
+bool swSpeakText(char *text)
 {
     return espeak_Synth(text, strlen(text) + 1, 0, POS_CHARACTER, 0,
         espeakCHARS_UTF8 | ssmlFlag, NULL, NULL) == EE_OK;
@@ -177,19 +177,19 @@ bool speakText(char *text)
 
 // List voice variants.  This is for formant synths, and is typically stuff
 // like MALE2, or CHILD1, though it can be anything.
-char **getVoiceVariants(int *numVariants)
+char **swGetVoiceVariants(uint32_t *numVariants)
 {
-    return listDirectory(variantsDir, numVariants);
+    return swListDirectory(variantsDir, numVariants);
 }
 
 // Select a voice variant.
-bool setVoiceVariant(char *variant)
+bool swSetVoiceVariant(char *variant)
 {
     free(currentVariant);
     if(strlen(variant) != 0) {
-        currentVariant = catStrings("+", variant);
+        currentVariant = swCatStrings("+", variant);
     } else {
-        currentVariant = copyString("");
+        currentVariant = swCopyString("");
     }
-    return setVoice(currentVoice);
+    return swSetVoice(currentVoice);
 }

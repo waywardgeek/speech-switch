@@ -2,8 +2,11 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "swutil.h"
-#include "swclient.h"
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include "util.h"
+#include "speechswitch.h"
 
 struct swEngineSt {
     char *name;
@@ -24,7 +27,7 @@ char **swListEngines(char *enginesDirectory, uint32_t *numEngines) {
         if(strncmp(engines[i], "sw_", 3) == 0) {
             char *p = engines[i];
             char *q = p + 3;
-            while(*p++ = *q++);
+            while((*p++ = *q++));
         }
     }
     return engines;
@@ -34,11 +37,11 @@ char **swListEngines(char *enginesDirectory, uint32_t *numEngines) {
 swEngine swStart(char *enginesDirectory, char *engineName, char *engineDataDirectory,
         swCallback callback, void *callbackContext) {
     swEngine engine = calloc(1, sizeof(struct swEngineSt));
-    char *fileName = calloc(strlen(enginesDirectory) + strlen(engineName) + 5);
-    sprintf("%s\/sw_%s", enginesDirectory, engineName);
-    engine->name = swCopyString(engineName):
+    char *fileName = calloc(strlen(enginesDirectory) + strlen(engineName) + 5, 1);
+    sprintf("%s/sw_%s", enginesDirectory, engineName);
+    engine->name = swCopyString(engineName);
     engine->callback = callback;
-    engined->callbackContext = callbackContext;
+    engine->callbackContext = callbackContext;
     engine->pid = swForkWithStdio(fileName, &engine->fin, &engine->fout,
         engineDataDirectory, NULL);
     return engine;
@@ -46,7 +49,7 @@ swEngine swStart(char *enginesDirectory, char *engineName, char *engineDataDirec
 
 // Shut down the speech engine, and free the swEngine object.
 void swStop(swEngine engine) {
-    fwrite(engine->fin, "quit\n");
+    fputs("quit\n", engine->fin);
     fclose(engine->fin);
     fclose(engine->fout);
     free(engine->name);
@@ -66,12 +69,19 @@ bool swSpeak(swEngine engine, char *text, bool isUTF8) {
     return true;
 }
 
+// Get the sample rate in Hertz.
+uint32_t swGetSampleRate(swEngine engine) {
+    fputs("get samplerate\n", engine->fin);
+    char *line = swReadLine(engine->fout);
+    uint32_t result = atoi(line);
+    free(line);
+    return result;
+}
+
 // Interrupt speech while being synthesized.
 void swCancel(swEngine engine);
-// Get the sample rate in Hertz.
-uint32_t swGetSampleRate(swEngine engine);
 // Get a list of supported voices.  The caller can call swFreeStrings
-char **swGetVoices     - List available voices
+char **swGetVoices(swEngine engine);
 // Free string lists returned by swGetVoices or swGetVariants
 void swFreeStringList(char **stringList, uint32_t numStrings);
 // List available variations on voices.
@@ -87,7 +97,7 @@ bool swSetPitch(swEngine engine, float pitch);
 // Set the punctuation level: none, some, most, or all.
 bool swSetPunctuation(swPunctuationLevel level);
 // Set the speech speed.  Speed is from -100.0 to 100.0, and 0 is the default.
-swSetSpeed(swEngine engine, float speed);
+bool swSetSpeed(swEngine engine, float speed);
 // Enable or disable ssml support.
 bool swSetSSML(swEngine engine, bool enable);
 // Return the protocol version, Currently 1 for all engines.

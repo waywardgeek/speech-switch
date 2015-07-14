@@ -16,7 +16,7 @@ This file supports read/write wave files.
 
 #define WAVE_BUF_LEN 4096
 
-struct waveFileStruct {
+struct swWaveFileStruct {
     int numChannels;
     int sampleRate;
     FILE *soundFile;
@@ -27,7 +27,7 @@ struct waveFileStruct {
 
 /* Write a string to a file. */
 static void writeBytes(
-    waveFile file,
+    swWaveFile file,
     void *bytes,
     int length)
 {
@@ -46,7 +46,7 @@ static void writeBytes(
 
 /* Write a string to a file. */
 static void writeString(
-    waveFile file,
+    swWaveFile file,
     char *string)
 {
     writeBytes(file, string, strlen(string));
@@ -54,7 +54,7 @@ static void writeString(
 
 /* Write an integer to a file in little endian order. */
 static void writeInt(
-    waveFile file,
+    swWaveFile file,
     int value)
 {
     char bytes[4];
@@ -69,7 +69,7 @@ static void writeInt(
 
 /* Write a short integer to a file in little endian order. */
 static void writeShort(
-    waveFile file,
+    swWaveFile file,
     short value)
 {
     char bytes[2];
@@ -84,7 +84,7 @@ static void writeShort(
 
 /* Read bytes from the input file. Return the number of bytes actually read. */
 static int readBytes(
-    waveFile file,
+    swWaveFile file,
     void *bytes,
     int length)
 {
@@ -96,7 +96,7 @@ static int readBytes(
 
 /* Read an exact number of bytes from the input file. */
 static void readExactBytes(
-    waveFile file,
+    swWaveFile file,
     void *bytes,
     int length)
 {
@@ -114,7 +114,7 @@ static void readExactBytes(
 
 /* Read an integer from the input file */
 static int readInt(
-    waveFile file)
+    swWaveFile file)
 {
     unsigned char bytes[4];
     int value = 0, i;
@@ -129,7 +129,7 @@ static int readInt(
 
 /* Read a short from the input file */
 static int readShort(
-    waveFile file)
+    swWaveFile file)
 {
     unsigned char bytes[2];
     int value = 0, i;
@@ -144,7 +144,7 @@ static int readShort(
 
 /* Read a string from the input and compare it to an expected string. */
 static void expectString(
-    waveFile file,
+    swWaveFile file,
     char *expectedString)
 {
     char buf[11]; /* Be sure that we never call with a longer string */
@@ -165,7 +165,7 @@ static void expectString(
 
 /* Write the header of the wave file. */
 static void writeHeader(
-    waveFile file,
+    swWaveFile file,
     int sampleRate)
 {
     /* write the wav file per the wav file format */
@@ -188,7 +188,7 @@ static void writeHeader(
 
 /* Read the header of the wave file. */
 static int readHeader(
-    waveFile file)
+    swWaveFile file)
 {
     int data;
 
@@ -223,9 +223,9 @@ static int readHeader(
     return 1;
 }
 
-/* Close the input or output file and free the waveFile. */
+/* Close the input or output file and free the swWaveFile. */
 static void closeFile(
-    waveFile file)
+    swWaveFile file)
 {
     FILE *soundFile = file->soundFile;
 
@@ -237,19 +237,19 @@ static void closeFile(
 }
 
 /* Open a 16-bit little-endian wav file for reading.  It may be mono or stereo. */
-waveFile openInputWaveFile(
+swWaveFile swOpenInputWaveFile(
     char *fileName,
     int *sampleRate,
     int *numChannels)
 {
-    waveFile file;
+    swWaveFile file;
     FILE *soundFile = fopen(fileName, "rb");
 
     if(soundFile == NULL) {
 	fprintf(stderr, "Unable to open wave file %s for reading\n", fileName);
 	return NULL;
     }
-    file = (waveFile)calloc(1, sizeof(struct waveFileStruct));
+    file = (swWaveFile)calloc(1, sizeof(struct swWaveFileStruct));
     file->soundFile = soundFile;
     file->isInput = 1;
     if(!readHeader(file)) {
@@ -262,19 +262,19 @@ waveFile openInputWaveFile(
 }
 
 /* Open a 16-bit little-endian wav file for writing.  It may be mono or stereo. */
-waveFile openOutputWaveFile(
+swWaveFile swOpenOutputWaveFile(
     char *fileName,
     int sampleRate,
     int numChannels)
 {
-    waveFile file;
+    swWaveFile file;
     FILE *soundFile = fopen(fileName, "wb");
 
     if(soundFile == NULL) {
 	fprintf(stderr, "Unable to open wave file %s for writing\n", fileName);
 	return NULL;
     }
-    file = (waveFile)calloc(1, sizeof(struct waveFileStruct));
+    file = (swWaveFile)calloc(1, sizeof(struct swWaveFileStruct));
     file->soundFile = soundFile;
     file->sampleRate = sampleRate;
     file->numChannels = numChannels;
@@ -287,8 +287,8 @@ waveFile openOutputWaveFile(
 }
 
 /* Close the sound file. */
-int closeWaveFile(
-    waveFile file)
+int swCloseWaveFile(
+    swWaveFile file)
 {
     FILE *soundFile = file->soundFile;
     int passed = 1;
@@ -322,8 +322,8 @@ int closeWaveFile(
 }
 
 /* Read from the wave file.  Return the number of samples read. */
-int readFromWaveFile(
-    waveFile file,
+int swReadFromWaveFile(
+    swWaveFile file,
     short *buffer,
     int maxSamples)
 {
@@ -346,8 +346,8 @@ int readFromWaveFile(
 }
 
 /* Write to the wave file. */
-int writeToWaveFile(
-    waveFile file,
+int swWriteToWaveFile(
+    swWaveFile file,
     short *buffer,
     int numSamples)
 {

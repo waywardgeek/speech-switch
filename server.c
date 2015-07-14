@@ -97,7 +97,7 @@ void LOG(char *format, ...) {}
 #endif
 
 // Switch to ANSI rather than UTF-8.
-void switchToANSI(void)
+void swSwitchToANSI(void)
 {
     useANSI = true;
 }
@@ -248,7 +248,7 @@ static void putClient(char *string)
 // Execute the getSampleRate command 
 static void execGetSampleRate(void)
 {
-    int sampleRate = getSampleRate();
+    int sampleRate = swGetSampleRate();
 
     writeClient("%d", sampleRate);
 }
@@ -288,21 +288,21 @@ static char *readWord(void)
 // Execute the getVoices command 
 static void execGetVoices(void)
 {
-    int numVoices, i;
-    char **voices = getVoices(&numVoices);
+    uint32_t numVoices, i;
+    char **voices = swGetVoices(&numVoices);
 
     writeClient("%d", numVoices);
     for(i = 0; i < numVoices; i++) {
         writeClient("%s", voices[i]);
     }
-    freeStringList(voices, numVoices);
+    swFreeStringList(voices, numVoices);
 }
 
 // Execute the getVariants command 
 static void execGetVoiceVariants(void)
 {
-    int numVariants, i;
-    char **variants = getVoiceVariants(&numVariants);
+    uint32_t numVariants, i;
+    char **variants = swGetVoiceVariants(&numVariants);
 
     if(variants == NULL) {
         writeClient("0");
@@ -312,7 +312,7 @@ static void execGetVoiceVariants(void)
     for(i = 0; i < numVariants; i++) {
         writeClient("%s", variants[i]);
     }
-    freeStringList(variants, numVariants);
+    swFreeStringList(variants, numVariants);
 }
 
 // Execute the setVoice command 
@@ -323,7 +323,7 @@ static void execSetVoice(void)
     while(*voiceName == ' ') {
         voiceName++;
     }
-    writeBool(*voiceName != '\0' && setVoice(voiceName));
+    writeBool(*voiceName != '\0' && swSetVoice(voiceName));
 }
 
 // Execute the setVariant command 
@@ -331,7 +331,7 @@ static void execSetVoiceVariant(void)
 {
     char *variantName = readWord();
 
-    writeBool(variantName != NULL && setVoiceVariant(variantName));
+    writeBool(variantName != NULL && swSetVoiceVariant(variantName));
 }
 
 // Read a floating point value from the line.
@@ -384,7 +384,7 @@ static void execSetPitch(void)
         writeBool(false);
         return;
     }
-    writeBool(setPitch(pitch));
+    writeBool(swSetPitch(pitch));
 }
 
 // Execute the setSpeed command 
@@ -397,7 +397,7 @@ static void execSetSpeed(void)
         writeBool(false);
         return;
     }
-    writeBool(setSpeed(speed));
+    writeBool(swSetSpeed(speed));
 }
 
 // Execute the setPunctuation command 
@@ -422,7 +422,7 @@ static void execSetPunctuation(void)
         writeBool(false);
         return;
     }
-    writeBool(setPunctuationLevel(level));
+    writeBool(swSetPunctuationLevel(level));
 }
 
 // Execute the setSsml command 
@@ -435,7 +435,7 @@ static void execSetSsml(void)
         writeBool(false);
         return;
     }
-    writeBool(setSSML(value));
+    writeBool(swSetSSML(value));
 }
 
 // Just read one line at a time into the textBuffer until we see a line with "."
@@ -479,7 +479,7 @@ static bool execSpeak(void)
         return false;
     }
     LOG("Starting speakText: %s\n", textBuffer);
-    writeBool(speakText((char *)textBuffer));
+    writeBool(swSpeakText((char *)textBuffer));
     return true;
 }
 
@@ -589,7 +589,7 @@ static char *convertToHex(short *data, int numSamples)
 }
 
 // Send audio samples in hex to the client.  Return false if the client cancelled. 
-bool processAudio(short *data, int numSamples)
+bool swProcessAudio(short *data, int numSamples)
 {
     char *hexBuf = convertToHex(data, numSamples);
 
@@ -626,7 +626,7 @@ int main(int argc, char **argv)
         printf("Usage: %s [data_directory]\n", argv[0]);
         return 1;
     }
-    if(!initializeEngine(synthDataDir)) {
+    if(!swInitializeEngine(synthDataDir)) {
         if(argc == 2) {
             printf("Unable to initialize the TTS engine with data directory %s.\n", argv[1]);
         } else {
@@ -641,6 +641,6 @@ int main(int argc, char **argv)
     while(readLine() && executeCommand());
     free(textBuffer);
     free(speechBuffer);
-    closeEngine();
+    swCloseEngine();
     return 0;
 }

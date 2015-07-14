@@ -182,7 +182,7 @@ static void unloadVoice(void)
 }
 
 // Initialize the engine.
-bool initializeEngine(char *synthdataPath)
+bool swInitializeEngine(char *synthdataPath)
 {
     pico_Retstring outMessage;
     int ret;
@@ -208,7 +208,7 @@ bool initializeEngine(char *synthdataPath)
 }
 
 // Close the TTS Engine.
-bool closeEngine(void)
+bool swCloseEngine(void)
 {
     unloadVoice();
     if(picoSystem) {
@@ -219,16 +219,16 @@ bool closeEngine(void)
 }
 
 // Return the sample rate in Hz
-int getSampleRate(void) {
+uint32_t swGetSampleRate(void) {
     return 16000;
 }
 
 // Return an array of char pointers representing names of supported voices.
-char **getVoices(int *numVoices)
+char **swGetVoices(uint32_t *numVoices)
 {
     char **voices;
     char *name, *language;
-    int i;
+    uint32_t i;
 
     *numVoices = picoNumSupportedVoices;
     voices = (char **)calloc(picoNumSupportedVoices, sizeof(char *));
@@ -244,7 +244,7 @@ char **getVoices(int *numVoices)
 }
 
 // Select a voice.
-bool setVoice(char *voice)
+bool swSetVoice(char *voice)
 {
     unloadVoice();
     return loadVoice(voice);
@@ -252,7 +252,7 @@ bool setVoice(char *voice)
 
 // Set the speech speed.  This can only be done by embedding svox pico specific
 // XML tags, so we leave it up to SH.
-bool setSpeed(float speed)
+bool swSetSpeed(float speed)
 {
     return true;
 }
@@ -260,26 +260,26 @@ bool setSpeed(float speed)
 // Set the pitch.  0 means default, -100 is min pitch, and 100 is max pitch.
 // This can only be done by embedding svox pico specific XML tags, so we leave
 // it up to SH.
-bool setPitch(float pitch)
+bool swSetPitch(float pitch)
 {
     return true;
 }
 
 // No punctuation level support is directly built into pico.  Let SH deal with
 // it.
-bool setPunctuationLevel(int level)
+bool swSetPunctuationLevel(int level)
 {
     return true;
 }
 
 // SSML is not directly supported, though a special svox pico tag language is.
-bool setSSML(bool value)
+bool swSetSSML(bool value)
 {
     return true;
 }
 
 // Speak the text.  Block until finished.
-bool speakText(char *text)
+bool swSpeakText(char *text)
 {
     pico_Int16  textRemaining = strlen(text) + 1; /* includes terminating ‘\0’*/
     pico_Int16 bytesSent, bytesReceived, outDataType;
@@ -299,7 +299,7 @@ bool speakText(char *text)
                 // TODO: check outDataType and convert outBuffer to short if needed.
                 data = (short *)(void *)outBuffer;
                 numSamples = bytesReceived >> 1;
-                if(!processAudio(data, numSamples)) {
+                if(!swProcessAudio(data, numSamples)) {
                     pico_resetEngine(picoEngine, PICO_RESET_SOFT);
                     return true; // Abort synthesis
                 }
@@ -310,13 +310,13 @@ bool speakText(char *text)
 }
 
 // We don't support variants.
-char **getVoiceVariants(int *numVariants)
+char **swGetVoiceVariants(uint32_t *numVariants)
 {
     return NULL;
 }
 
 // Select a voice variant.
-bool setVoiceVariant(char *variant)
+bool swSetVoiceVariant(char *variant)
 {
     return true;
 }
