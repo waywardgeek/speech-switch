@@ -39,8 +39,7 @@ static void writeServer(
 
 // List available engines.
 char **swListEngines(char *enginesDirectory, uint32_t *numEngines) {
-    uint32_t numFiles;
-    char **engines = swListDirectory(enginesDirectory, &numFiles);
+    char **engines = swListDirectory(enginesDirectory, numEngines);
     uint32_t i;
     // Trim off thw "sw_" prefix if present
     for(i = 0; i < *numEngines; i++) {

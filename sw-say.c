@@ -18,6 +18,7 @@ static void usage(void) {
         "\n"
         "-e engine      -- name of supported engine, like espeak picotts or ibmtts\n"
         "-f textFile    -- text file to be spoken\n"
+        "-l             -- list engines\n"
         "-p pitch       -- speech pitch (1.0 is normal)\n"
         "-s speed       -- speech speed (1.0 is normal)\n"
         "-v voice       -- name of voice to use\n"
@@ -75,7 +76,7 @@ int main(int argc, char *argv[]) {
     textPos = 0;
     text = calloc(textLen, sizeof(char));
     int opt;
-    while ((opt = getopt(argc, argv, "e:f:p:rs:v:w:")) != -1) {
+    while ((opt = getopt(argc, argv, "e:f:lp:s:v:w:")) != -1) {
         switch (opt) {
         case 'e':
             engineName = optarg;
@@ -83,6 +84,16 @@ int main(int argc, char *argv[]) {
         case 'f':
             textFileName = optarg;
             break;
+        case 'l':
+            {
+            uint32_t numEngines;
+            char ** engines = swListEngines("../lib/speechswitch/engines", &numEngines);
+            uint32_t i;
+            for(i = 0; i < numEngines; i++) {
+                printf("%s\n", engines[i]);
+            }
+            return 0;
+            }
         case 'p':
             pitch = atof(optarg);
             if(pitch == 0.0) {
