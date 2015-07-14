@@ -6,6 +6,7 @@
 #include <string.h>
 #include <getopt.h>
 #include <sonic.h>
+#include "util.h"
 #include "speechswitch.h"
 
 static char *swEngineDir;
@@ -28,6 +29,13 @@ static void usage(void) {
     exit(1);
 }
 
+struct swContextSt {
+    swWaveFile outWaveFile;
+    FILE *outStream;
+};
+
+typedef struct swContextSt *swContext;
+
 // Add text to be spoken to the text buffer.
 static void addText(char *p) {
     uint32_t len = strlen(p);
@@ -39,31 +47,58 @@ static void addText(char *p) {
     textPos += len;
 }
 
+// Play the sound samples.  We basically put the problem to aplay.  We use:
+//   paplay --raw --rate=<samplerate> --channels=1 --format=s16le
+static FILE *openDefaultSoundDevice(uint32_t sampleRate) {
+    FILE *fin, *fout;
+    char rateParam[42];
+    sprintf(rateParam, "--rate=%u", sampleRate);
+    swForkWithStdio("/usr/bin/paplay", &fin, &fout, "--raw", rateParam, "--channels=1",
+            "--format=s16le", NULL);
+    return fin;
+}
+
 // This function receives samples from the speech synthesis engine.  If we
 // return false, speech synthesis is cancelled.
 static bool speechCallback(swEngine engine, int16_t *samples, uint32_t numSamples,
         void *callbackContext) {
-    swWaveFile outWaveFile = *(swWaveFile *)callbackContext;
-    swWriteToWaveFile(outWaveFile, samples, numSamples);
+    swContext context = (swContext)callbackContext;
+    if(context->outWaveFile != NULL) {
+        swWriteToWaveFile(context->outWaveFile, samples, numSamples);
+    } else if(context->outStream != NULL) {
+        uint32_t totalWritten = 0;
+        while(totalWritten < numSamples) {
+            uint32_t numWritten = fwrite(samples, sizeof(int16_t), numSamples, context->outStream);
+            samples += numWritten;
+            totalWritten += numWritten;
+        }
+    }
     return true;
 }
 
 // Speak the text.  Do this in a stream oriented way.
 static void speakText(char *waveFileName, char *text, char *textFileName,
         char *engineName, char *voice, double speed, double pitch) {
-    if(waveFileName == NULL) {
-        fprintf(stderr, "Currently, you must supply the -w flag\n");
-        exit(1);
-    }
     // Start the speech engine
     // TODO: deal with data directory
-    swWaveFile outWaveFile;
-    swEngine engine = swStart(swEngineDir, engineName, NULL, speechCallback, &outWaveFile);
-    // Open the output wave file.
+    struct swContextSt context = {0,};
+    swEngine engine = swStart(swEngineDir, engineName, NULL, speechCallback, &context);
     uint32_t sampleRate = swGetSampleRate(engine);
-    outWaveFile = swOpenOutputWaveFile(waveFileName, sampleRate, 1);
+    if(waveFileName != NULL) {
+        // Open the output wave file.
+        context.outWaveFile = swOpenOutputWaveFile(waveFileName, sampleRate, 1);
+    } else {
+        // Play to speaker
+        context.outStream = openDefaultSoundDevice(sampleRate);
+    }
+    swSetSpeed(engine, speed);
+    swSetPitch(engine, pitch);
     swSpeak(engine, text, true);
-    swCloseWaveFile(outWaveFile);
+    if(waveFileName != NULL) {
+        swCloseWaveFile(context.outWaveFile);
+    } else {
+        fclose(context.outStream);
+    }
 }
 
 int main(int argc, char *argv[]) {
@@ -95,10 +130,21 @@ int main(int argc, char *argv[]) {
             {
             uint32_t numEngines;
             char ** engines = swListEngines(swEngineDir, &numEngines);
-            uint32_t i;
+            uint32_t i, j;
             for(i = 0; i < numEngines; i++) {
-                printf("%s\n", engines[i]);
+                swEngine engine = swStart(swEngineDir, engines[i], NULL, NULL, NULL);
+                if(engine != NULL) {
+                    printf("%s\n", engines[i]);
+                    uint32_t numVoices;
+                    char **voices = swGetVoices(engine, &numVoices);
+                    for(j = 0; j < numVoices; j++) {
+                        printf("    %s\n", voices[j]);
+                    }
+                    swFreeStringList(voices, numVoices);
+                    swStop(engine);
+                }
             }
+            swFreeStringList(engines, numEngines);
             return 0;
             }
         case 'p':

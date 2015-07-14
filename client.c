@@ -139,35 +139,71 @@ bool swSpeak(swEngine engine, char *text, bool isUTF8) {
     return true;
 }
 
-// Get the sample rate in Hertz.
-uint32_t swGetSampleRate(swEngine engine) {
-    writeServer(engine, "get samplerate\n");
+// Read a uint32_t from the server.
+static uint32_t readUint32(swEngine engine) {
     char *line = swReadLine(engine->fout);
     uint32_t result = atoi(line);
     free(line);
     return result;
 }
 
+// Read a count-prefixed string list from the server.
+static char **readStringList(swEngine engine, uint32_t *numStrings) {
+    *numStrings = readUint32(engine);
+    char **strings = calloc(*numStrings, sizeof(char *));
+    uint32_t i;
+    for(i = 0; i < *numStrings; i++) {
+        strings[i] = swReadLine(engine->fout);
+    }
+    return strings;
+}
+
+// Get the sample rate in Hertz.
+uint32_t swGetSampleRate(swEngine engine) {
+    writeServer(engine, "get samplerate\n");
+    return readUint32(engine);
+}
+
+// Get a list of supported voices.  The caller can call swFreeStrings
+char **swGetVoices(swEngine engine, uint32_t *numVoices) {
+    writeServer(engine, "get voices\n");
+    return readStringList(engine, numVoices);
+}
+
+// Read a line and return true only if the line is "true".
+static bool expectTrue(swEngine engine) {
+    char *line = swReadLine(engine->fout);
+    bool result = !strcmp(line, "true");
+    free(line);
+    return result;
+}
+
+// Set the speech speed.  Speed is from -100.0 to 100.0, and 0 is the default.
+bool swSetSpeed(swEngine engine, float speed) {
+    writeServer(engine, "set speed %f\n", speed);
+    return expectTrue(engine);
+}
+
+// Set the pitch.  0 means default, -100 is min pitch, and 100 is max pitch.
+bool swSetPitch(swEngine engine, float pitch) {
+    writeServer(engine, "set pitch %f\n", pitch);
+    return expectTrue(engine);
+}
+
 // Interrupt speech while being synthesized.
 void swCancel(swEngine engine);
-// Get a list of supported voices.  The caller can call swFreeStrings
-char **swGetVoices(swEngine engine);
 // Free string lists returned by swGetVoices or swGetVariants
 void swFreeStringList(char **stringList, uint32_t numStrings);
 // List available variations on voices.
-char **swGetVariants(swEngine engine);
+char **swGetVariants(swEngine engine, uint32_t *numVariants);
 // Return the encoding.
 swEncoding swGetEncoding(swEngine engine);
 // Select a voice by it's identifier
 bool swSetVoice(swEngine engine, char *voice);
 // Select a voice variant by it's identifier
 bool swSetVariant(swEngine engine, char *variant);
-// Set the pitch.  0 means default, -100 is min pitch, and 100 is max pitch.
-bool swSetPitch(swEngine engine, float pitch);
 // Set the punctuation level: none, some, most, or all.
 bool swSetPunctuation(swPunctuationLevel level);
-// Set the speech speed.  Speed is from -100.0 to 100.0, and 0 is the default.
-bool swSetSpeed(swEngine engine, float speed);
 // Enable or disable ssml support.
 bool swSetSSML(swEngine engine, bool enable);
 // Return the protocol version, Currently 1 for all engines.

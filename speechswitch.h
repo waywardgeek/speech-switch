@@ -47,11 +47,11 @@ bool swSpeak(swEngine engine, char *text, bool isUTF8);
 void swCancel(swEngine engine);
 // Get the sample rate in Hertz.
 uint32_t swGetSampleRate(swEngine engine);
-// Get a list of supported voices.  The caller can call swFreeStrings to free
+// Get a list of supported voices.  The caller can call swFreeStringList to free
 // them.
-char **swGetVoices(swEngine engine);
+char **swGetVoices(swEngine engine, uint32_t *numVoices);
 // List available variations on voices.
-char **swGetVariants(swEngine engine);
+char **swGetVariants(swEngine engine, uint32_t *numVariants);
 // Return the encoding.
 swEncoding swGetEncoding(swEngine engine);
 // Select a voice by it's identifier
