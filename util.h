@@ -1,9 +1,14 @@
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 
 // These utilities are provided simply to aid portability.
 char **swListDirectory(char *dirName, uint32_t *numFiles);
+// Determine if the file exists and is readable.
+bool swFileReadable(char *fileName);
+// Make a copy of the string.  The caller is responsible for calling free.
 char *swCopyString(char *string);
+// Concatenate two strings.  The caller is responsible for calling free.
 char *swCatStrings(char *string1, char *string2);
 // This function frees a voice list created with getVoices.
 void swFreeStringList(char **stringList, uint32_t numStrings);

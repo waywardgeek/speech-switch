@@ -105,6 +105,11 @@ char *swReadLine(FILE *file) {
     return buf;
 }
 
+// Determine if the file exists and is readable.
+bool swFileReadable(char *fileName) {
+    return !access(fileName, R_OK);
+}
+
 #define MAXARGS 42
 
 // Create a child process and return two FILE objects for communication.  The

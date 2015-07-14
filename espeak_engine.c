@@ -29,7 +29,15 @@ bool swInitializeEngine(char *synthdataPath)
 {
     char *variantsDirName = "espeak-data/voices/!v";
     if(synthdataPath == NULL) {
-        synthdataPath = "/usr/share/";
+        if(swFileReadable("/usr/share/espeak-data")) {
+            synthdataPath = "/usr/share";
+        } else {
+            synthdataPath = "/usr/lib/x86_64-linux-gnu";
+        }
+    }
+    if(!swFileReadable(synthdataPath)) {
+        fprintf(stderr, "Unable to read espeak data from %s\n", synthdataPath);
+        return false;
     }
     variantsDir = (char *)calloc(strlen(synthdataPath) + strlen(variantsDirName) + 2, sizeof(char));
     strcpy(variantsDir, synthdataPath);
