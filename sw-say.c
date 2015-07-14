@@ -8,6 +8,8 @@
 #include <sonic.h>
 #include "speechswitch.h"
 
+static char *swEngineDir;
+
 static char *text;
 static uint32_t textLen, textPos;
 
@@ -54,10 +56,9 @@ static void speakText(char *waveFileName, char *text, char *textFileName,
         exit(1);
     }
     // Start the speech engine
-    char *enginesDirectory = "../lib/speechswitch/engines";
     // TODO: deal with data directory
     swWaveFile outWaveFile;
-    swEngine engine = swStart(enginesDirectory, engineName, NULL, speechCallback, &outWaveFile);
+    swEngine engine = swStart(swEngineDir, engineName, NULL, speechCallback, &outWaveFile);
     // Open the output wave file.
     uint32_t sampleRate = swGetSampleRate(engine);
     outWaveFile = swOpenOutputWaveFile(waveFileName, sampleRate, 1);
@@ -75,6 +76,12 @@ int main(int argc, char *argv[]) {
     textLen = 128;
     textPos = 0;
     text = calloc(textLen, sizeof(char));
+    char *relPath = "/../lib/speechswitch/engines";
+    swEngineDir = calloc(strlen(argv[0]) + strlen(relPath) + 1, sizeof(char));
+    strcpy(swEngineDir, argv[0]);
+    char *p = strrchr(swEngineDir, '/');
+    *p = '\0';
+    strcat(swEngineDir, relPath);
     int opt;
     while ((opt = getopt(argc, argv, "e:f:lp:s:v:w:")) != -1) {
         switch (opt) {
@@ -87,7 +94,7 @@ int main(int argc, char *argv[]) {
         case 'l':
             {
             uint32_t numEngines;
-            char ** engines = swListEngines("../lib/speechswitch/engines", &numEngines);
+            char ** engines = swListEngines(swEngineDir, &numEngines);
             uint32_t i;
             for(i = 0; i < numEngines; i++) {
                 printf("%s\n", engines[i]);
