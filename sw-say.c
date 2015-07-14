@@ -14,6 +14,13 @@ static char *swEngineDir;
 static char *text;
 static uint32_t textLen, textPos;
 
+struct swContextSt {
+    swWaveFile outWaveFile;
+    FILE *outStream;
+};
+
+typedef struct swContextSt *swContext;
+
 // Report usage flags and exit.
 static void usage(void) {
     fprintf(stderr,
@@ -29,12 +36,21 @@ static void usage(void) {
     exit(1);
 }
 
-struct swContextSt {
-    swWaveFile outWaveFile;
-    FILE *outStream;
-};
-
-typedef struct swContextSt *swContext;
+// Find the location of the engines directory.
+static void setEnginesDir(char *exeName) {
+    if(strchr(exeName, '/') == NULL) {
+        // Assume it's installed in default location
+        swEngineDir = "/usr/lib/speechswitch/engines";
+    } else {
+        // Assume relative to the executable
+        char *relPath = "/../lib/speechswitch/engines";
+        swEngineDir = calloc(strlen(exeName) + strlen(relPath) + 1, sizeof(char));
+        strcpy(swEngineDir, exeName);
+        char *p = strrchr(swEngineDir, '/');
+        *p = '\0';
+        strcat(swEngineDir, relPath);
+    }
+}
 
 // Add text to be spoken to the text buffer.
 static void addText(char *p) {
@@ -111,12 +127,7 @@ int main(int argc, char *argv[]) {
     textLen = 128;
     textPos = 0;
     text = calloc(textLen, sizeof(char));
-    char *relPath = "/../lib/speechswitch/engines";
-    swEngineDir = calloc(strlen(argv[0]) + strlen(relPath) + 1, sizeof(char));
-    strcpy(swEngineDir, argv[0]);
-    char *p = strrchr(swEngineDir, '/');
-    *p = '\0';
-    strcat(swEngineDir, relPath);
+    setEnginesDir(argv[0]);
     int opt;
     while ((opt = getopt(argc, argv, "e:f:lp:s:v:w:")) != -1) {
         switch (opt) {
@@ -185,7 +196,7 @@ int main(int argc, char *argv[]) {
         for(i = optind; i < argc; i++) {
             addText(argv[i]);
         }
-    } else if(textFileName != NULL) {
+    } else if(textFileName == NULL) {
         addText("Hello, World!");
     }
     speakText(waveFileName, text, textFileName, engineName, voiceName, speed, pitch);

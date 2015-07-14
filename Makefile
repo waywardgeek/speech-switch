@@ -39,5 +39,10 @@ bin:
 lib/speechswitch/engines:
 	mkdir -p lib/speechswitch/engines
 
+install: all
+	install -d /usr/bin /usr/lib/speechswitch/engines
+	install bin/sw-say /usr/bin
+	install lib/speechswitch/engines/* /usr/lib/speechswitch/engines
+
 clean:
 	rm -f $(ENGINES) bin/sw-say
