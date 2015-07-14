@@ -10,7 +10,7 @@ EXAMPLE=lib/speechswitch/engines/sw_example
 
 ENGINES=$(ESPEAK) $(IBMTTS) $(PICO) $(EXAMPLE)
 
-all: bin engines $(ENGINES) bin/sw-say
+all: bin lib/speechswitch/engines $(ENGINES) bin/sw-say
 
 $(EXAMPLE): server.c example_engine.c util.c engine.h
 	$(CC) -O2 -I . -o $(EXAMPLE) example_engine.c server.c util.c -lespeak
@@ -36,7 +36,7 @@ swdatabase.h: SpeechSwitch.dd
 bin:
 	mkdir bin
 
-engines:
+lib/speechswitch/engines:
 	mkdir -p lib/speechswitch/engines
 
 clean:
