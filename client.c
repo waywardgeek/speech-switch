@@ -5,8 +5,11 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include "util.h"
 #include "speechswitch.h"
+
+#define MAX_TEXT_LENGTH (1 << 16)
 
 struct swEngineSt {
     char *name;
@@ -16,6 +19,23 @@ struct swEngineSt {
     void *callbackContext;
     int pid;
 };
+
+// Write a formatted string to the server.
+static void writeServer(
+    swEngine engine,
+    char *format,
+    ...)
+{
+    va_list ap;
+    char buf[MAX_TEXT_LENGTH];
+
+    va_start(ap, format);
+    vsnprintf(buf, MAX_TEXT_LENGTH - 1, format, ap);
+    va_end(ap);
+    buf[MAX_TEXT_LENGTH - 1] = '\0';
+    fputs(buf, engine->fin);
+    fflush(engine->fin);
+}
 
 // List available engines.
 char **swListEngines(char *enginesDirectory, uint32_t *numEngines) {
@@ -49,11 +69,56 @@ swEngine swStart(char *enginesDirectory, char *engineName, char *engineDataDirec
 
 // Shut down the speech engine, and free the swEngine object.
 void swStop(swEngine engine) {
-    fputs("quit\n", engine->fin);
+    writeServer(engine, "quit\n");
     fclose(engine->fin);
     fclose(engine->fout);
     free(engine->name);
     free(engine);
+}
+
+// TODO: reuse buffers rather than calloc each time.
+
+// Convert a line of hex digits to int16_t.
+static void convertHexToInt16(int16_t *samples, char *line, uint32_t numSamples) {
+    uint32_t i;
+    for(i = 0; i < numSamples; i++) {
+        int16_t value = 0;
+        uint32_t j;
+        for(j = 0; j < 4; j++) {
+            value <<= 4;
+            char c = *line++;
+            uint32_t digit = 0;
+            if(c >= '0' && c <= '9') {
+                digit = c - '0';
+            } else if(c >= 'A' && c <= 'F') {
+                digit = c - 'F' + 10;
+            } else if(c >= 'a' && c <= 'f') {
+                digit = c - 'f' + 10;
+            }
+            value += digit;
+        }
+        *samples++ = value;
+    }
+}
+
+// Read speech data in hexidecimal from the server until "true" is read.
+// Caller must free the samples.
+static int16_t *readSpeechData(swEngine engine, uint32_t *numSamples) {
+    uint32_t bufSize = 1024;
+    int16_t *samples = calloc(bufSize, sizeof(int16_t));
+    uint32_t pos = 0;
+    char *line = swReadLine(engine->fout);
+    while(strcmp(line, "true")) {
+        uint32_t newSamples = strlen(line)/4;
+        if(pos + newSamples > bufSize) {
+            bufSize = (pos + newSamples) << 1;
+            samples = realloc(samples, bufSize*sizeof(int16_t));
+        }
+        convertHexToInt16(samples + pos, line, newSamples);
+        pos += newSamples;
+    }
+    *numSamples = pos;
+    return samples;
 }
 
 // Synthesize speech samples.  Synthesized samples will be passed to the 
@@ -66,6 +131,14 @@ bool swSpeak(swEngine engine, char *text, bool isUTF8) {
     fputs(text, engine->fin);
     fputs(".\n", engine->fin);
     // TODO: deal with error handling
+    // Now we have to read data and send it to the callback until we read "true".
+    uint32_t numSamples;
+    int16_t *samples = readSpeechData(engine, &numSamples);
+    while(samples != NULL) {
+        engine->callback(engine, samples, numSamples, engine->callbackContext);
+        free(samples);
+        samples = readSpeechData(engine, &numSamples);
+    }
     return true;
 }
 

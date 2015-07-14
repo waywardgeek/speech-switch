@@ -220,7 +220,7 @@ static bool readLine(void)
     return true;
 }
 
-// Write a formatted string to the client 
+// Write a formatted string to the client.
 static void writeClient(
     char *format,
     ...)
@@ -237,7 +237,7 @@ static void writeClient(
     fflush(stdout);
 }
 
-// Write a string to the client 
+// Write a string to the client.
 static void putClient(char *string)
 {
     LOG("Wrote %s", string);
@@ -245,7 +245,7 @@ static void putClient(char *string)
     fflush(stdout);
 }
 
-// Execute the getSampleRate command 
+// Execute the getSampleRate command.
 static void execGetSampleRate(void)
 {
     int sampleRate = swGetSampleRate();
@@ -285,7 +285,7 @@ static char *readWord(void)
     return (char *)word;
 }
 
-// Execute the getVoices command 
+// Execute the getVoices command.
 static void execGetVoices(void)
 {
     uint32_t numVoices, i;
@@ -298,7 +298,7 @@ static void execGetVoices(void)
     swFreeStringList(voices, numVoices);
 }
 
-// Execute the getVariants command 
+// Execute the getVariants command.
 static void execGetVoiceVariants(void)
 {
     uint32_t numVariants, i;
@@ -315,7 +315,7 @@ static void execGetVoiceVariants(void)
     swFreeStringList(variants, numVariants);
 }
 
-// Execute the setVoice command 
+// Execute the setVoice command.
 static void execSetVoice(void)
 {
     char *voiceName = (char *)linePos;
@@ -326,7 +326,7 @@ static void execSetVoice(void)
     writeBool(*voiceName != '\0' && swSetVoice(voiceName));
 }
 
-// Execute the setVariant command 
+// Execute the setVariant command.
 static void execSetVoiceVariant(void)
 {
     char *variantName = readWord();
