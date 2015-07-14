@@ -58,7 +58,7 @@ swEngine swStart(char *enginesDirectory, char *engineName, char *engineDataDirec
         swCallback callback, void *callbackContext) {
     swEngine engine = calloc(1, sizeof(struct swEngineSt));
     char *fileName = calloc(strlen(enginesDirectory) + strlen(engineName) + 5, 1);
-    sprintf("%s/sw_%s", enginesDirectory, engineName);
+    sprintf(fileName, "%s/sw_%s", enginesDirectory, engineName);
     engine->name = swCopyString(engineName);
     engine->callback = callback;
     engine->callbackContext = callbackContext;
