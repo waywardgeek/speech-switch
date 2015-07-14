@@ -150,7 +150,7 @@ int swForkWithStdio(char *exePath, FILE **fin, FILE **fout, ...) {
     // Parent program.  Create fin/fout and return.
     close(pipes[0][1]);
     close(pipes[1][0]);
-    *fin = fdopen(pipes[0][0], "r");
-    *fout = fdopen(pipes[1][1], "w");
+    *fout = fdopen(pipes[0][0], "r");
+    *fin = fdopen(pipes[1][1], "w");
     return pid;
 }

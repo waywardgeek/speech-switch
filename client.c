@@ -91,9 +91,9 @@ static void convertHexToInt16(int16_t *samples, char *line, uint32_t numSamples)
             if(c >= '0' && c <= '9') {
                 digit = c - '0';
             } else if(c >= 'A' && c <= 'F') {
-                digit = c - 'F' + 10;
+                digit = c - 'A' + 10;
             } else if(c >= 'a' && c <= 'f') {
-                digit = c - 'f' + 10;
+                digit = c - 'a' + 10;
             }
             value += digit;
         }
@@ -104,20 +104,17 @@ static void convertHexToInt16(int16_t *samples, char *line, uint32_t numSamples)
 // Read speech data in hexidecimal from the server until "true" is read.
 // Caller must free the samples.
 static int16_t *readSpeechData(swEngine engine, uint32_t *numSamples) {
-    uint32_t bufSize = 1024;
-    int16_t *samples = calloc(bufSize, sizeof(int16_t));
-    uint32_t pos = 0;
     char *line = swReadLine(engine->fout);
-    while(strcmp(line, "true")) {
-        uint32_t newSamples = strlen(line)/4;
-        if(pos + newSamples > bufSize) {
-            bufSize = (pos + newSamples) << 1;
-            samples = realloc(samples, bufSize*sizeof(int16_t));
-        }
-        convertHexToInt16(samples + pos, line, newSamples);
-        pos += newSamples;
+    if(!strcmp(line, "true")) {
+        // We're done.
+        *numSamples = 0;
+        free(line);
+        return NULL;
     }
-    *numSamples = pos;
+    *numSamples  = strlen(line)/4;
+    int16_t *samples = calloc(*numSamples, sizeof(int16_t));
+    convertHexToInt16(samples, line, *numSamples);
+    free(line);
     return samples;
 }
 
@@ -129,7 +126,7 @@ bool swSpeak(swEngine engine, char *text, bool isUTF8) {
     // TODO: replace any \n. with \n..
     fputs("speak\n", engine->fin);
     fputs(text, engine->fin);
-    fputs(".\n", engine->fin);
+    writeServer(engine, "\n.\n");
     // TODO: deal with error handling
     // Now we have to read data and send it to the callback until we read "true".
     uint32_t numSamples;
@@ -137,6 +134,7 @@ bool swSpeak(swEngine engine, char *text, bool isUTF8) {
     while(samples != NULL) {
         engine->callback(engine, samples, numSamples, engine->callbackContext);
         free(samples);
+        writeServer(engine, "true\n");
         samples = readSpeechData(engine, &numSamples);
     }
     return true;
@@ -144,7 +142,7 @@ bool swSpeak(swEngine engine, char *text, bool isUTF8) {
 
 // Get the sample rate in Hertz.
 uint32_t swGetSampleRate(swEngine engine) {
-    fputs("get samplerate\n", engine->fin);
+    writeServer(engine, "get samplerate\n");
     char *line = swReadLine(engine->fout);
     uint32_t result = atoi(line);
     free(line);

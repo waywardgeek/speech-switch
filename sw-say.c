@@ -74,7 +74,6 @@ int main(int argc, char *argv[]) {
     textLen = 128;
     textPos = 0;
     text = calloc(textLen, sizeof(char));
-    addText("Hello, World!");
     int opt;
     while ((opt = getopt(argc, argv, "e:f:p:rs:v:w:")) != -1) {
         switch (opt) {
@@ -122,6 +121,8 @@ int main(int argc, char *argv[]) {
         for(i = optind; i < argc; i++) {
             addText(argv[i]);
         }
+    } else if(textFileName != NULL) {
+        addText("Hello, World!");
     }
     speakText(waveFileName, text, textFileName, engineName, voiceName, speed, pitch);
     return 0;
