@@ -10,4 +10,4 @@ char **copyStringList(char **stringList, int numStrings);
 // child process simply uses stdin/stdout for communication.  The arguments to
 // the child process should be passed as additional parameters, ending with a
 // NULL.  Return the child PID.
-int swForkWithStdio(char *exePath, FILE **fin, FILE **fout, ...) {
+int swForkWithStdio(char *exePath, FILE **fin, FILE **fout, ...);

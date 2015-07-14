@@ -86,7 +86,7 @@ static void LOG(char *format, ...)
 
 #else
 
-static void LOG(char *format, ...) {}
+void LOG(char *format, ...) {}
 //static int timeDiff(int start, int stop) {return 0;}
 //static int getTime(void) {return 0;}
 
@@ -644,4 +644,3 @@ int main(int argc, char **argv)
     closeEngine();
     return 0;
 }
-

@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "wave.h"
 
 typedef enum {
     SW_UTF8,
@@ -20,7 +21,8 @@ struct swEngineSt;
 
 typedef struct swEngineSt *swEngine;
 
-typedef bool (*callback)(swEngine engine, uint16_t *samples, uint32_t numSamples)) swCallback;
+typedef bool (*callback)(swEngine engine, uint16_t *samples, uint32_t numSamples,
+    void *callbackContext)) swCallback;
 
 // These functions start/stop engines and synthesize speech.
 
@@ -28,7 +30,7 @@ typedef bool (*callback)(swEngine engine, uint16_t *samples, uint32_t numSamples
 char **swListEngines(char *enginesDirectory);
 // Create and initialize a new swEngine object, and connect to the speech engine.
 swEngine swStart(char *enginesDirectory, char *engineName, char *engineDataDirectory,
-        swCallback callback);
+        swCallback callback, void *callbackContext);
 // Shut down the speech engine, and free the swEngine object.
 void swStop(swEngine engine);
 // Synthesize speech samples.  Synthesized samples will be passed to the 

@@ -1,4 +1,4 @@
-#include "client.h"
+#include "speechswitch.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 #incldue <sonic.h>
+#include "speechswitch.h"
 
 static char *text;
 static uint32_t textLen, textPos;
@@ -19,7 +20,6 @@ static void usage(void) {
         "-e engine      -- name of supported engine, like espeak picotts or ibmtts\n"
         "-f textFile    -- text file to be spoken\n"
         "-p pitch       -- speech pitch (1.0 is normal)\n"
-        "-r             -- raw output, meaning PCM samples\n"
         "-s speed       -- speech speed (1.0 is normal)\n"
         "-v voice       -- name of voice to use\n"
         "-w waveFile    -- output wave file rather than playing sound\n");
@@ -37,29 +37,32 @@ static void addText(char *p) {
     textPos += len;
 }
 
+// This function receives samples from the speech synthesis engine.  If we
+// return false, speech synthesis is cancelled.
+static bool speechCallback(swEngine engine, uint16_t *samples, uint32_t numSamples,
+        void *callbackContext) {
+    swWaveFile outWaveFile = *(swWaveFile *)callbackContext;
+    swWriteToWaveFile(outWaveFile, samples, numSamples);
+    return true;
+}
+
 // Speak the text.  Do this in a stream oriented way.
-static speakText(char *waveFileName, bool raw, char *text, char *textFileName,
-        char *engine, char *voice, double speed, double pitch) {
+static speakText(char *waveFileName, char *text, char *textFileName,
+        char *engineName, char *voice, double speed, double pitch) {
     if(waveFileName == NULL) {
         fprintf(stderr, "Currently, you must supply the -w flag\n");
         return 1;
     }
+    // Start the speech engine
+    char *enginesDirectory = "../lib/speechswitch/engines";
+    // TODO: deal with data directory
+    WaveFile outWaveFile;
+    swEngine engine = swStart(enginesDirectory, engineName, NULL, speechCallback, &outWaveFile);
     // Open the output wave file.
-    uint32_t numSamples, sampleRate;
-    WaveFile outfile = openOutputWaveFile(waveFileName, sampleRate, 1);
-    int16_t samples = genSamples(text, engine, &numSamples, &sampleRate);
-    /*
-    // Now change the speed and pitch
-    if(speed < 1.0) {
-        samples = realloc(samples, (size_t)(2*2*1.1*numSamples/speed));
-    }
-    uint32_t numSamples = sonicChangeShortSpeed(samples, numSamples, speed, pitch,
-        1.0, 1.0, false, sampleRate, 1);
-    // Now play it
-    */
-
-    writeToWaveFile(outfile, samples, int numSamples);
-    free(samples);
+    uint32_t sampleRate = swGetSampleRate(engine);
+    outWaveFile = wvOpenOutputWaveFile(waveFileName, sampleRate, 1);
+    swSpeak(engine, text, true);
+    swCloseWaveFile(swWaveFile file);
 }
 
 int main(int argc, char *argv[]) {
@@ -69,7 +72,6 @@ int main(int argc, char *argv[]) {
     double pitch = 1.0;
     char *waveFileName = NULL;
     char *voiceName = NULL;
-    bool raw = false;
     textLen = 128;
     textPos = 0;
     text = calloc(textLen, sizeof(char));
@@ -90,9 +92,6 @@ int main(int argc, char *argv[]) {
                     "2.0 is twice the pitch , 0.5 is half\");
                 usage();
             }
-            break;
-        case 'r':
-            raw = true;
             break;
         case 's':
             speed = atof(optarg);
@@ -125,6 +124,6 @@ int main(int argc, char *argv[]) {
             addText(argv[i]);
         }
     }
-    speakText(waveFileName, raw, text, textFileName, engine, voice, speed, pitch);
+    speakText(waveFileName, text, textFileName, engine, voice, speed, pitch);
     return 0;
 }

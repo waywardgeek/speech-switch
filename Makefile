@@ -1,5 +1,6 @@
 #CFLAGS=-Wall -O2 -fPIC -m32
 CFLAGS=-Wall --std=c99
+#CC=gcc
 CC=gcc
 
 ESPEAK=engines/sw_espeak
@@ -24,8 +25,8 @@ $(IBMTTS): server.c ibmtts_engine.c engine.h
 $(PICO): pico_engine.c server.c engine.h
 	gcc -Wall -O2 -o $(PICO) pico_engine.c server.c -lttspico -lpopt -lm
 
-sw-say: sw-say.c swdatabase.c swdatabase.h
-	gcc -Wall -O2 -o sw-say sw-say.c swdatabase.c -lddutil
+sw-say: sw-say.c client.c wave.c
+	gcc -Wall -O2 -o sw-say sw-say.c client.c wave.c
 
 swdatabase.c: swdatabase.h
 

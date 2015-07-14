@@ -9,6 +9,8 @@ struct swEngineSt {
     char *name;
     FILE *fin;
     FILE *fout;
+    swCallback callback;
+    void *callbackContext;
     int pid;
 };
 
@@ -30,12 +32,13 @@ char **swListEngines(char *enginesDirectory, uint32_t *numEngines) {
 
 // Create and initialize a new swEngine object, and connect to the speech engine.
 swEngine swStart(char *enginesDirectory, char *engineName, char *engineDataDirectory,
-        swCallback callback) {
+        swCallback callback, void *callbackContext) {
     swEngine engine = calloc(1, sizeof(struct swEngineSt));
     char *fileName = calloc(strlen(enginesDirectory) + strlen(engineName) + 5);
     sprintf("%s\/sw_%s", enginesDirectory, engineName);
     engine->name = swCopyString(engineName):
     engine->callback = callback;
+    engined->callbackContext = callbackContext;
     engine->pid = swForkWithStdio(fileName, &engine->fin, &engine->fout,
         engineDataDirectory, NULL);
     return engine;
