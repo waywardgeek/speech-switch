@@ -95,13 +95,16 @@ char *swReadLine(FILE *file) {
     uint32_t pos = 0;
     int c = getc(file);
     while(c != EOF && c != '\n') {
-        if(pos == bufSize) {
-            bufSize <<= 1;
-            buf = realloc(buf, bufSize);
+        if(c >= ' ') {
+            if(pos+1 == bufSize) {
+                bufSize <<= 1;
+                buf = realloc(buf, bufSize);
+            }
+            buf[pos++] = c;
         }
-        buf[pos++] = c;
         c = getc(file);
     }
+    buf[pos] = '\0';
     return buf;
 }
 

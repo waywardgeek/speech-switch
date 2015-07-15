@@ -84,14 +84,15 @@ void swStop(swEngine engine) {
 // TODO: reuse buffers rather than calloc each time.
 
 // Convert a line of hex digits to int16_t.
-static void convertHexToInt16(int16_t *samples, char *line, uint32_t numSamples) {
-    uint32_t i;
-    for(i = 0; i < numSamples; i++) {
-        int16_t value = 0;
-        uint32_t j;
-        for(j = 0; j < 4; j++) {
+static uint32_t convertHexToInt16(int16_t *samples, char *line) {
+    uint32_t i = 0;
+    uint32_t numDigits = 0;
+    uint32_t numSamples = 0;
+    uint32_t value = 0;
+    char c = line[i++];
+    while(c != '\0') {
+        if(c > ' ') {
             value <<= 4;
-            char c = *line++;
             uint32_t digit = 0;
             if(c >= '0' && c <= '9') {
                 digit = c - '0';
@@ -101,9 +102,21 @@ static void convertHexToInt16(int16_t *samples, char *line, uint32_t numSamples)
                 digit = c - 'a' + 10;
             }
             value += digit;
+            numDigits++;
+            if(numDigits == 4) {
+                samples[numSamples++] = value;
+                numDigits = 0;
+                value = 0;
+            }
+        } else {
+            fprintf(stderr, "Unexpected character '%c'\n", c);
         }
-        *samples++ = value;
+        c = line[i++];
     }
+    if(numDigits != 0) {
+        fprintf(stderr, "Hex digits left over: %u", numDigits);
+    }
+    return numSamples;
 }
 
 // Read speech data in hexidecimal from the server until "true" is read.
@@ -116,9 +129,9 @@ static int16_t *readSpeechData(swEngine engine, uint32_t *numSamples) {
         free(line);
         return NULL;
     }
-    *numSamples  = strlen(line)/4;
-    int16_t *samples = calloc(*numSamples, sizeof(int16_t));
-    convertHexToInt16(samples, line, *numSamples);
+    uint32_t bufSize  = strlen(line)/4;
+    int16_t *samples = calloc(bufSize, sizeof(int16_t));
+    *numSamples = convertHexToInt16(samples, line);
     free(line);
     return samples;
 }

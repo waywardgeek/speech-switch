@@ -125,13 +125,14 @@ bool swSetSpeed(float speed)
     int espeakSpeed;
     float minSpeed = 80.0f; // In words per minute
     float defaultSpeed = 170.0f;
-    float maxSpeed = 800.0f;
+    float maxSpeed = 450.0f;
 
     if(speed >= 0.0f) {
         espeakSpeed = (int)((defaultSpeed + speed*(maxSpeed - defaultSpeed)/100.0f) + 0.5f);
     } else {
         espeakSpeed = (int)((defaultSpeed + speed*(defaultSpeed - minSpeed)/100.0f) + 0.5f);
     }
+    fprintf(stderr, "Setting speed to %u\n", espeakSpeed);
     return espeak_SetParameter(espeakRATE, espeakSpeed, 0) == EE_OK;
 }
 
