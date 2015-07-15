@@ -108,8 +108,6 @@ static uint32_t convertHexToInt16(int16_t *samples, char *line) {
                 numDigits = 0;
                 value = 0;
             }
-        } else {
-            fprintf(stderr, "Unexpected character '%c'\n", c);
         }
         c = line[i++];
     }
@@ -215,14 +213,24 @@ bool swSetVoice(swEngine engine, char *voice) {
     return expectTrue(engine);
 }
 
+// Return the engine's native encoding.
+swEncoding swGetEncoding(swEngine engine) {
+    writeServer(engine, "get encoding\n");
+    char *line = swReadLine(engine->fout);
+    swEncoding encoding = SW_UTF8;
+    if(!strcmp(line, "ANSI")) {
+        encoding = SW_ANSI;
+    }
+    free(line);
+    return encoding;
+}
+
 // Interrupt speech while being synthesized.
 void swCancel(swEngine engine);
 // Free string lists returned by swGetVoices or swGetVariants
 void swFreeStringList(char **stringList, uint32_t numStrings);
 // List available variations on voices.
 char **swGetVariants(swEngine engine, uint32_t *numVariants);
-// Return the encoding.
-swEncoding swGetEncoding(swEngine engine);
 // Select a voice variant by it's identifier
 bool swSetVariant(swEngine engine, char *variant);
 // Set the punctuation level: none, some, most, or all.

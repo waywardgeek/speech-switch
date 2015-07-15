@@ -22,3 +22,9 @@ char *swReadLine(FILE *file);
 // the child process should be passed as additional parameters, ending with a
 // NULL.  Return the child PID.
 int swForkWithStdio(char *exePath, FILE **fin, FILE **fout, ...);
+
+// Convert an ANSI character to ASCII.  The returned string is zero-terminated.
+// This returns a static buffer and is not thread safe.
+char *swConvertANSIToASCII(char c);
+// The returned word will be at most this long
+#define SW_MAX_WORD_SIZE 16

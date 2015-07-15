@@ -10,11 +10,15 @@
 #include "speechswitch.h"
 
 #define SONIC_BUFFER_SIZE 2048
+#define MAX_PARAGRAPH 2048
+#define MIN_PARAGRAPH 1024
 
 static char *swEngineDir;
 
-static char *text;
-static uint32_t textLen, textPos;
+static char *swText;
+static uint32_t swTextLen, swTextPos;
+static char swParagraph[MAX_PARAGRAPH + SW_MAX_WORD_SIZE];
+static bool swConvertToASCII;
 
 struct swContextSt {
     swWaveFile outWaveFile;
@@ -31,6 +35,7 @@ static void usage(void) {
     fprintf(stderr,
         "Supported flags are:\n"
         "\n"
+        "-a             -- convert text to ASCI before being spoken\n"
         "-e engine      -- name of supported engine, like espeak picotts or ibmtts\n"
         "-f textFile    -- text file to be spoken\n"
         "-l             -- list engines\n"
@@ -62,13 +67,50 @@ static void setEnginesDir(char *exeName) {
 // Add text to be spoken to the text buffer.
 static void addText(char *p) {
     uint32_t len = strlen(p);
-    if(textPos + len + 1 >= textLen) {
-        textLen <<= 1;
-        text = realloc(text, textLen*sizeof(char));
+    if(swTextPos + len + 1 >= swTextLen) {
+        swTextLen <<= 1;
+        swText = realloc(swText, swTextLen*sizeof(char));
     }
-    strcat(text + textPos, p);
-    textPos += len;
+    strcat(swText + swTextPos, p);
+    swTextPos += len;
 }
+
+// Read text, repacing character sequences < space with a single space.
+// Continue until we see a period and space between MIN_PARAGRAPH and
+// MAX_PARAGRAPH.  If there is no period in this range, then return
+// MAX_PARAGRAPH characters.
+static char *readParagraph(FILE *file) {
+    uint32_t pos = 0;
+    int c = getc(file);
+    while(c != EOF && pos < MAX_PARAGRAPH) {
+        if(c <= ' ') {
+            while(c <= ' ') {
+                c = getc(file);
+            }
+            if(c != EOF) {
+                ungetc(c, file);
+            }
+            c = ' ';
+        }
+        if(!swConvertToASCII) {
+            swParagraph[pos++] = c;
+        } else {
+            char *word = swConvertANSIToASCII(c);
+            strcpy(swParagraph + pos, word);
+            pos += strlen(word);
+        }
+        if(c == '.' && pos >= MIN_PARAGRAPH) {
+            break;
+        }
+        c = getc(file);
+    }
+    if(c == EOF) {
+        return NULL;
+    }
+    swParagraph[pos] = '\0';
+    return swParagraph;
+}
+
 
 // Play the sound samples.  We basically put the problem to aplay.  We use:
 //   paplay --raw --rate=<samplerate> --channels=1 --format=s16le
@@ -180,11 +222,11 @@ static void speakText(char *waveFileName, char *text, char *textFileName, char *
             fprintf(stderr, "Unable to read text file %s\n", textFileName);
             exit(1);
         }
-        char *line = swReadLine(file);
-        while(line != NULL) {
+        char *paragraph = readParagraph(file);
+        while(paragraph != NULL) {
             // TODO: deal with character encoding
-            swSpeak(engine, line, true);
-            line = swReadLine(file);
+            swSpeak(engine, paragraph, true);
+            paragraph = readParagraph(file);
         }
     } else {
         swSpeak(engine, text, true);
@@ -213,15 +255,19 @@ int main(int argc, char *argv[]) {
     float pitch = 0.0;
     char *waveFileName = NULL;
     char *voiceName = NULL;
-    textLen = 128;
-    textPos = 0;
-    text = calloc(textLen, sizeof(char));
+    swTextLen = 128;
+    swTextPos = 0;
+    swText = calloc(swTextLen, sizeof(char));
     setEnginesDir(argv[0]);
     bool useSonicSpeed = false;
     bool useSonicPitch = false;
+    swConvertToASCII = false;
     int opt;
-    while ((opt = getopt(argc, argv, "e:f:lp:Ps:Sv:w:")) != -1) {
+    while ((opt = getopt(argc, argv, "ae:f:lp:Ps:Sv:w:")) != -1) {
         switch (opt) {
+        case 'a':
+            swConvertToASCII = true;
+            break;
         case 'e':
             engineName = optarg;
             break;
@@ -286,7 +332,7 @@ int main(int argc, char *argv[]) {
             usage();
         }
         // Speak the command line parameters
-        textPos = 0;
+        swTextPos = 0;
         uint32_t i;
         for(i = optind; i < argc; i++) {
             addText(argv[i]);
@@ -294,7 +340,7 @@ int main(int argc, char *argv[]) {
     } else if(textFileName == NULL) {
         addText("Hello, World!");
     }
-    speakText(waveFileName, text, textFileName, engineName, voiceName, speed,
+    speakText(waveFileName, swText, textFileName, engineName, voiceName, speed,
             pitch, useSonicSpeed, useSonicPitch);
     return 0;
 }

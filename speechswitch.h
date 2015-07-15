@@ -52,7 +52,7 @@ uint32_t swGetSampleRate(swEngine engine);
 char **swGetVoices(swEngine engine, uint32_t *numVoices);
 // List available variations on voices.
 char **swGetVariants(swEngine engine, uint32_t *numVariants);
-// Return the encoding.
+// Return the native encoding of the engine.
 swEncoding swGetEncoding(swEngine engine);
 // Select a voice by it's identifier
 bool swSetVoice(swEngine engine, char *voice);

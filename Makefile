@@ -25,8 +25,8 @@ $(IBMTTS): server.c ibmtts_engine.c util.c engine.h
 $(PICO): pico_engine.c server.c util.c engine.h
 	gcc $(CFLAGS) -o $(PICO) pico_engine.c server.c util.c -lttspico -lpopt -lm
 
-bin/sw-say: sw-say.c client.c util.c wave.c engine.h speechswitch.h
-	gcc $(CFLAGS) -o bin/sw-say sw-say.c client.c util.c wave.c -lsonic
+bin/sw-say: sw-say.c client.c ansi2ascii.c util.c wave.c engine.h speechswitch.h
+	gcc $(CFLAGS) -o bin/sw-say sw-say.c client.c ansi2ascii.c util.c wave.c -lsonic
 
 swdatabase.c: swdatabase.h
 
