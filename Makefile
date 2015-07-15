@@ -6,7 +6,7 @@ CC=gcc
 ESPEAK=lib/speechswitch/engines/sw_espeak
 IBMTTS=lib/speechswitch/engines/sw_ibmtts
 PICO=lib/speechswitch/engines/sw_picotts
-EXAMPLE=lib/speechswitch/engines/sw_example
+EXAMPLE=sw_example
 
 ENGINES=$(ESPEAK) $(IBMTTS) $(PICO) $(EXAMPLE)
 
