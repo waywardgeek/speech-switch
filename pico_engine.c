@@ -68,8 +68,7 @@ static char *picoTaResourceName = NULL;
 static char *picoSgResourceName = NULL;
 static char *picoSynthdataPath = NULL;
 
-// Find the language index of the named voice.  If it does not exist, the first
-// language.
+// Find the language index of the named voice.  If it does not exist, return -1.
 static int findLanguageIndex(char *name)
 {
     int i;
@@ -79,13 +78,18 @@ static int findLanguageIndex(char *name)
             return i;
         }
     }
-    return 0;
+    return -1;
 }
 
 // Load a voice
 static bool loadVoice(char *name)
 {
+    bool foundLanguage = true;
     int langIndex = findLanguageIndex(name);
+    if(langIndex == -1) {
+        foundLanguage = false;
+        langIndex = 0; // Load the default voice
+    }
     pico_Retstring outMessage;
     char *fileName;
     int ret;
@@ -156,7 +160,7 @@ static bool loadVoice(char *name)
         fprintf(stderr, "Cannot create a new pico engine (%i): %s\n", ret, outMessage);
         return false;
     }
-    return true;
+    return foundLanguage;
 }
 
 // Unload a voice.
@@ -250,19 +254,16 @@ bool swSetVoice(char *voice)
     return loadVoice(voice);
 }
 
-// Set the speech speed.  This can only be done by embedding svox pico specific
-// XML tags, so we leave it up to SH.
+// Speed support is poor in PicoTTS, so let libsonic do it.
 bool swSetSpeed(float speed)
 {
-    return true;
+    return false;
 }
 
-// Set the pitch.  0 means default, -100 is min pitch, and 100 is max pitch.
-// This can only be done by embedding svox pico specific XML tags, so we leave
-// it up to SH.
+// Pitch support is poor in PicoTTS, so let libsonic do it.
 bool swSetPitch(float pitch)
 {
-    return true;
+    return false;
 }
 
 // No punctuation level support is directly built into pico.  Let SH deal with

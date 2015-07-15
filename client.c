@@ -55,14 +55,20 @@ char **swListEngines(char *enginesDirectory, uint32_t *numEngines) {
 // Create and initialize a new swEngine object, and connect to the speech engine.
 swEngine swStart(char *enginesDirectory, char *engineName, char *engineDataDirectory,
         swCallback callback, void *callbackContext) {
-    swEngine engine = calloc(1, sizeof(struct swEngineSt));
     char *fileName = calloc(strlen(enginesDirectory) + strlen(engineName) + 5, 1);
     sprintf(fileName, "%s/sw_%s", enginesDirectory, engineName);
+    if(!swFileReadable(fileName)) {
+        fprintf(stderr, "Unable to execute %s\n", fileName);
+        free(fileName);
+        return NULL;
+    }
+    swEngine engine = calloc(1, sizeof(struct swEngineSt));
     engine->name = swCopyString(engineName);
     engine->callback = callback;
     engine->callbackContext = callbackContext;
     engine->pid = swForkWithStdio(fileName, &engine->fin, &engine->fout,
         engineDataDirectory, NULL);
+    free(fileName);
     return engine;
 }
 
@@ -190,6 +196,12 @@ bool swSetPitch(swEngine engine, float pitch) {
     return expectTrue(engine);
 }
 
+// Select a voice by it's identifier
+bool swSetVoice(swEngine engine, char *voice) {
+    writeServer(engine, "set voice %s\n", voice);
+    return expectTrue(engine);
+}
+
 // Interrupt speech while being synthesized.
 void swCancel(swEngine engine);
 // Free string lists returned by swGetVoices or swGetVariants
@@ -198,8 +210,6 @@ void swFreeStringList(char **stringList, uint32_t numStrings);
 char **swGetVariants(swEngine engine, uint32_t *numVariants);
 // Return the encoding.
 swEncoding swGetEncoding(swEngine engine);
-// Select a voice by it's identifier
-bool swSetVoice(swEngine engine, char *voice);
 // Select a voice variant by it's identifier
 bool swSetVariant(swEngine engine, char *variant);
 // Set the punctuation level: none, some, most, or all.

@@ -25,7 +25,14 @@ static int synthCallback(short *data, int numSamples, espeak_EVENT *events)
 bool swInitializeEngine(char *synthdataPath)
 {
     if(synthdataPath == NULL) {
-        printf("The espeak engine requires a synthdataPath\n");
+        if(swFileReadable("/usr/share/espeak-data")) {
+            synthdataPath = "/usr/share";
+        } else {
+            synthdataPath = "/usr/lib/x86_64-linux-gnu";
+        }
+    }
+    if(!swFileReadable(synthdataPath)) {
+        fprintf(stderr, "Unable to read espeak data from %s\n", synthdataPath);
         return false;
     }
     sampleRate = espeak_Initialize(AUDIO_OUTPUT_SYNCHRONOUS, ESPEAK_BUFLEN, synthdataPath, 0);

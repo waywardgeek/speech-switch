@@ -197,24 +197,30 @@ char **swGetVoices(uint32_t *numVoices)
 }
 
 // Find a language from it's name.
-static eciLocale findLocaleFromName(char *name)
+static eciLocale findLocaleFromName(char *name, bool *foundIt)
 {
     int i;
 
     for(i = 0; i < NUM_LANGUAGES; i++) {
         if(!strcasecmp(eciLocales[i].name, name)) {
+            *foundIt = true;
             return eciLocales[i];
         }
     }
-    return eciLocales[0]; // Dummy return
+    *foundIt = false;
+    return eciLocales[0];
 }
 
 // Select a voice.
 bool swSetVoice(char *voice)
 {
-    eciLocale locale = findLocaleFromName(voice);
-
-    return eciSetParam(eciHandle, eciLanguageDialect, locale.langID) != -1;
+    bool foundIt;
+    eciLocale locale = findLocaleFromName(voice, &foundIt);
+    if(!foundIt) {
+        return false;
+    }
+    eciSetParam(eciHandle, eciLanguageDialect, locale.langID);
+    return true;
 }
 
 // Set the speech speed.  Speed is from -100.0 to 100.0, and 0 is the default.
