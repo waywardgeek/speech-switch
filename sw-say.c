@@ -84,7 +84,7 @@ static char *readParagraph(FILE *file) {
     int c = getc(file);
     while(c != EOF && pos < MAX_PARAGRAPH) {
         if(c <= ' ') {
-            while(c <= ' ') {
+            while(c <= ' ' && c != EOF) {
                 c = getc(file);
             }
             if(c != EOF) {
