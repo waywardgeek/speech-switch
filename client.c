@@ -18,6 +18,7 @@ struct swEngineSt {
     swCallback callback;
     void *callbackContext;
     int pid;
+    volatile bool cancel;
 };
 
 // Write a formatted string to the server.
@@ -35,6 +36,16 @@ static void writeServer(
     buf[MAX_TEXT_LENGTH - 1] = '\0';
     fputs(buf, engine->fin);
     fflush(engine->fin);
+}
+
+// Write "true\n" or "false\n" to the server.
+static void writeBool(swEngine engine, bool value) {
+    if(value) {
+        writeServer(engine, "true\n");
+    } else {
+        writeServer(engine, "false\n");
+
+    }
 }
 
 // List available engines.
@@ -140,6 +151,7 @@ static int16_t *readSpeechData(swEngine engine, uint32_t *numSamples) {
 bool swSpeak(swEngine engine, char *text, bool isUTF8) {
     // TODO: deal with isUTF8
     // TODO: replace any \n. with \n..
+    engine->cancel = false;
     fputs("speak\n", engine->fin);
     fputs(text, engine->fin);
     writeServer(engine, "\n.\n");
@@ -147,13 +159,15 @@ bool swSpeak(swEngine engine, char *text, bool isUTF8) {
     // Now we have to read data and send it to the callback until we read "true".
     uint32_t numSamples;
     int16_t *samples = readSpeechData(engine, &numSamples);
-    while(samples != NULL) {
-        engine->callback(engine, samples, numSamples, engine->callbackContext);
+    bool cancelled = false;
+    while(samples != NULL && !cancelled) {
+        cancelled = engine->callback(engine, samples, numSamples, engine->cancel,
+                engine->callbackContext);
         free(samples);
-        writeServer(engine, "true\n");
+        writeBool(engine, !cancelled);
         samples = readSpeechData(engine, &numSamples);
     }
-    return true;
+    return !cancelled;
 }
 
 // Read a uint32_t from the server.
@@ -226,16 +240,51 @@ swEncoding swGetEncoding(swEngine engine) {
 }
 
 // Interrupt speech while being synthesized.
-void swCancel(swEngine engine);
-// Free string lists returned by swGetVoices or swGetVariants
-void swFreeStringList(char **stringList, uint32_t numStrings);
+void swCancel(swEngine engine) {
+    engine->cancel = true;
+}
+
+// Returns true if swCancel has been called since the last call to swSpeak.
+bool swSpeechCanceled(swEngine engine) {
+    return engine->cancel;
+}
+
 // List available variations on voices.
-char **swGetVariants(swEngine engine, uint32_t *numVariants);
+char **swGetVariants(swEngine engine, uint32_t *numVariants) {
+    writeServer(engine, "get variants\n");
+    return readStringList(engine, numVariants);
+}
+
 // Select a voice variant by it's identifier
-bool swSetVariant(swEngine engine, char *variant);
+bool swSetVariant(swEngine engine, char *variant) {
+    writeServer(engine, "set variant %s\n", variant);
+    return expectTrue(engine);
+}
+
 // Set the punctuation level: none, some, most, or all.
-bool swSetPunctuation(swPunctuationLevel level);
+bool swSetPunctuation(swEngine engine, swPunctuationLevel level) {
+    char *levelName = NULL;
+    switch(level) {
+    case PUNCT_NONE: levelName = "none"; break;
+    case PUNCT_SOME: levelName = "some"; break;
+    case PUNCT_MOST: levelName = "most"; break;
+    case PUNCT_ALL: levelName = "all"; break;
+    default:
+        fprintf(stderr, "Unknonwn punctuation level");
+        exit(1);
+    }
+    writeServer(engine, "set punctuation %s\n", levelName);
+    return expectTrue(engine);
+}
+
 // Enable or disable ssml support.
-bool swSetSSML(swEngine engine, bool enable);
+bool swSetSSML(swEngine engine, bool enable) {
+    writeServer(engine, "set ssml %s\n", enable? "true" : "false");
+    return expectTrue(engine);
+}
+
 // Return the protocol version, Currently 1 for all engines.
-uint32_t swGetVersion(swEngine engine);
+uint32_t swGetVersion(swEngine engine) {
+    writeServer(engine, "get version\n");
+    return readUint32(engine);
+}

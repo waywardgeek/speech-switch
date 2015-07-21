@@ -148,7 +148,7 @@ static uint32_t adjustSamples(swContext context, int16_t *samples, uint32_t numS
 // This function receives samples from the speech synthesis engine.  If we
 // return false, speech synthesis is cancelled.
 static bool speechCallback(swEngine engine, int16_t *samples, uint32_t numSamples,
-        void *callbackContext) {
+        bool cancelled, void *callbackContext) {
     swContext context = (swContext)callbackContext;
     if(context->sonic != NULL) {
         numSamples = adjustSamples(context, samples, numSamples);
@@ -164,7 +164,7 @@ static bool speechCallback(swEngine engine, int16_t *samples, uint32_t numSample
                     numSamples - samplesWritten, context->outStream);
         }
     }
-    return true;
+    return cancelled;
 }
 
 // Speak the text.  Do this in a stream oriented way.
@@ -234,10 +234,10 @@ static void speakText(char *waveFileName, char *text, char *textFileName, char *
     if(useSonicSpeed || useSonicPitch) {
         uint32_t numSamples = adjustSamples(&context, NULL, 0);
         sonicDestroyStream(context.sonic);
-        if(numSamples > 0) {
+        if(numSamples > 0 && !swSpeechCanceled(engine)) {
             // Don't call sonic again
             context.sonic = NULL;
-            speechCallback(engine, context.samples, numSamples, &context);
+            speechCallback(engine, context.samples, numSamples, false, &context);
         }
         free(context.samples);
     }

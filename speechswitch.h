@@ -23,9 +23,12 @@ typedef struct swEngineSt *swEngine;
 
 typedef unsigned char uchar;
 
-
+// If a speech callback returns false, it will terminate the current speech
+// synthesis operation.  If the user calls swCancel, then cancel will be set on
+// the next callback.  Cancelation means the speech buffers should be
+// cleared/flushed as soon as possible.
 typedef bool (*swCallback)(swEngine engine, int16_t *samples, uint32_t numSamples,
-    void *callbackContext);
+    bool cancel, void *callbackContext);
 
 // These functions start/stop engines and synthesize speech.
 
@@ -45,6 +48,8 @@ bool swSpeak(swEngine engine, char *text, bool isUTF8);
 
 // Interrupt speech while being synthesized.
 void swCancel(swEngine engine);
+// Returns true if swCancel has been called since the last call to swSpeak.
+bool swSpeechCanceled(swEngine engine);
 // Get the sample rate in Hertz.
 uint32_t swGetSampleRate(swEngine engine);
 // Get a list of supported voices.  The caller can call swFreeStringList to free
@@ -61,7 +66,7 @@ bool swSetVariant(swEngine engine, char *variant);
 // Set the pitch.  0 means default, -100 is min pitch, and 100 is max pitch.
 bool swSetPitch(swEngine engine, float pitch);
 // Set the punctuation level: none, some, most, or all.
-bool swSetPunctuation(swPunctuationLevel level);
+bool swSetPunctuation(swEngine engine, swPunctuationLevel level);
 // Set the speech speed.  Speed is from -100.0 to 100.0, and 0 is the default.
 bool swSetSpeed(swEngine engine, float speed);
 // Enable or disable ssml support.
