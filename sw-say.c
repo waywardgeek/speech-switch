@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <getopt.h>
-#include <sonic.h>
+#include "sonic.h"
 #include "util.h"
 #include "speechswitch.h"
 
@@ -39,6 +39,7 @@ static void usage(void) {
         "-e engine      -- name of supported engine, like espeak picotts or ibmtts\n"
         "-f textFile    -- text file to be spoken\n"
         "-l             -- list engines\n"
+        "-n             -- Use nonlinear speedup\n"
         "-p pitch       -- speech pitch (1.0 is normal)\n"
         "-P             -- use sonic to adjust pitch rather than the speech engine\n"
         "-s speed       -- speech speed (1.0 is normal)\n"
@@ -104,7 +105,7 @@ static char *readParagraph(FILE *file) {
         }
         c = getc(file);
     }
-    if(c == EOF) {
+    if(pos == 0 && c == EOF) {
         return NULL;
     }
     swParagraph[pos] = '\0';
@@ -169,7 +170,8 @@ static bool speechCallback(swEngine engine, int16_t *samples, uint32_t numSample
 
 // Speak the text.  Do this in a stream oriented way.
 static void speakText(char *waveFileName, char *text, char *textFileName, char *engineName,
-        char *voice, float speed, float pitch, bool useSonicSpeed, bool useSonicPitch) {
+        char *voice, float speed, float pitch, bool useSonicSpeed, bool useSonicPitch,
+        bool nonlinearSpeedup) {
     // Start the speech engine
     // TODO: deal with data directory
     struct swContextSt context = {0,};
@@ -210,6 +212,7 @@ static void speakText(char *waveFileName, char *text, char *textFileName, char *
     }
     if(useSonicSpeed || useSonicPitch) {
         context.sonic = sonicCreateStream(sampleRate, 1);
+        sonicEnableNonlinearSpeedup(context.sonic, nonlinearSpeedup);
         sonicSetSpeed(context.sonic, sonicSpeed);
         sonicSetPitch(context.sonic, sonicPitch);
         context.bufferSize = SONIC_BUFFER_SIZE;
@@ -261,9 +264,10 @@ int main(int argc, char *argv[]) {
     setEnginesDir(argv[0]);
     bool useSonicSpeed = false;
     bool useSonicPitch = false;
+    bool nonlinearSpeedup = false;
     swConvertToASCII = false;
     int opt;
-    while ((opt = getopt(argc, argv, "ae:f:lp:Ps:Sv:w:")) != -1) {
+    while ((opt = getopt(argc, argv, "ae:f:lnp:Ps:Sv:w:")) != -1) {
         switch (opt) {
         case 'a':
             swConvertToASCII = true;
@@ -295,6 +299,10 @@ int main(int argc, char *argv[]) {
             swFreeStringList(engines, numEngines);
             return 0;
             }
+        case 'n':
+            nonlinearSpeedup = true;
+            useSonicSpeed = true;
+            break;
         case 'p':
             pitch = atof(optarg);
             if(pitch > 100.0 || pitch < -100.0) {
@@ -341,6 +349,6 @@ int main(int argc, char *argv[]) {
         addText("Hello, World!");
     }
     speakText(waveFileName, swText, textFileName, engineName, voiceName, speed,
-            pitch, useSonicSpeed, useSonicPitch);
+            pitch, useSonicSpeed, useSonicPitch, nonlinearSpeedup);
     return 0;
 }
