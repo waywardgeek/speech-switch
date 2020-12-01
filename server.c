@@ -4,8 +4,8 @@ This file was written by me, Bill Cox, in 2011, and placed into the public domai
 Feel free to use this file in commercial projects or any other use you wish.
 
 To simplify supporting engines in various languages and compile formats, such as
-32-bit vs 64-bit, TTS engines talk to speech-hub through stdin and stdout.  There
-are just a few simple commands.
+32-bit vs 64-bit, TTS engines talk to speech-switch through stdin and stdout.
+There are just a few simple commands.
 
 These should mostly be pretty self-explanitory, with the exception of speak.
 The expectation is that the server is single threaded, and so it will read
@@ -502,7 +502,7 @@ static void execHelp(void)
         "set ssml [true|false] - Enable or disable ssml support\n"
         "speak          - Enter text on separate lines, ending with \".\" on a line by\n"
         "                 itself.  Synthesized samples will be generated in hexidecimal\n"
-        "get version    - Report the speech-hub protocol version, currently 1");
+        "get version    - Report the speech-switch protocol version, currently 1");
 }
 
 // Execute the current command stored in 'line'.  If we read a close command, return false. 
