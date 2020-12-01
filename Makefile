@@ -20,7 +20,7 @@ $(ESPEAK): server.c espeak_engine.c util.c engine.h
 
 # Note that this cannot be compiled with -O2 due to unknown bugs.
 $(IBMTTS): server.c ibmtts_engine.c util.c engine.h
-	$(CC) $(CFLAGS) -m32 -I/opt/IBM/ibmtts/inc -o $(IBMTTS) server.c util.c ibmtts_engine.c -libmeci
+	$(CC) $(CFLAGS) -I/opt/IBM/ibmtts/inc -o $(IBMTTS) server.c util.c ibmtts_engine.c -libmeci
 
 $(PICO): pico_engine.c server.c util.c engine.h
 	gcc $(CFLAGS) -o $(PICO) pico_engine.c server.c util.c -lttspico -lpopt -lm
