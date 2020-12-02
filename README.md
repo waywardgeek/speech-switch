@@ -1,8 +1,18 @@
 # Speech Switch
 
-The goal of Speech Switch is making Linux a hospitable place for commercial TTS
-engines like Voxin.  This will benifit many blind and low vision Linux users
-who, like me, rely on Orca every day to be productive.
+The goal of Speech Switch is making Linux a hospitable place for commercial
+text-to-speech engines like Voxin.  This will benifit many blind and low vision
+Linux users who, like me, rely on Orca every day to be productive.
+
+Speech Switch will be an alternative to Speech Dispatcher, and is designed from
+the ground up to make TTS engine binaries portable between distros, just like
+applications on Windows just keep running year after year.
+
+This will finally enable Linux to be a unified market for text-to-speech
+vendors.  As a result, Linux will become more attractive to blind and low vision
+users.  Many of us _require_ Eloquence, which in Linux is called Voxin.  Espeak
+is universally available, which is awesome, but my own productivity is
+dramatically improved when using Voxin.
 
 # License
 
