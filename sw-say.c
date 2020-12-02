@@ -7,7 +7,7 @@
 #include <getopt.h>
 #include "sonic.h"
 #include "util.h"
-#include "speechswitch.h"
+#include "client.h"
 
 #define SONIC_BUFFER_SIZE 2048
 #define MAX_PARAGRAPH 2048

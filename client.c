@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include "util.h"
-#include "speechswitch.h"
+#include "client.h"
 
 #define MAX_TEXT_LENGTH (1 << 16)
 

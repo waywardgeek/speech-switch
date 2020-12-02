@@ -10,7 +10,7 @@ EXAMPLE=sw_example
 
 ENGINES=$(ESPEAK) $(IBMTTS) $(PICO) $(EXAMPLE)
 
-all: bin lib/speechswitch/engines $(ENGINES) bin/sw-say
+all: bin lib/speechswitch/engines $(ENGINES) bin/sw-say bin/speechswitch
 
 $(EXAMPLE): server.c example_engine.c util.c engine.h
 	$(CC) -O2 -I . -o $(EXAMPLE) example_engine.c server.c util.c -lespeak
@@ -25,13 +25,11 @@ $(IBMTTS): server.c ibmtts_engine.c util.c engine.h
 $(PICO): pico_engine.c server.c util.c engine.h
 	gcc $(CFLAGS) -o $(PICO) pico_engine.c server.c util.c -lttspico -lpopt -lm
 
-bin/sw-say: sw-say.c client.c ansi2ascii.c util.c wave.c engine.h speechswitch.h
+bin/sw-say: sw-say.c client.c ansi2ascii.c util.c wave.c engine.h client.h
 	gcc $(CFLAGS) -o bin/sw-say sw-say.c client.c ansi2ascii.c util.c wave.c -lsonic -lm
 
-swdatabase.c: swdatabase.h
-
-swdatabase.h: SpeechSwitch.dd
-	datadraw SpeechSwitch.dd
+bin/speechswitch: speechswitch.c client.c ansi2ascii.c util.c wave.c engine.h client.h
+	gcc $(CFLAGS) -o bin/speechswitch sw-say.c client.c ansi2ascii.c util.c wave.c -lsonic -lm
 
 bin:
 	mkdir bin
