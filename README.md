@@ -1,6 +1,8 @@
 # Speech Switch
 
-Making Linux a hospitable place for commercial TTS engines like Voxin.
+The goal of Speech Switch is making Linux a hospitable place for commercial TTS
+engines like Voxin.  This will benifit many blind and low vision Linux users
+who, like me, rely on Orca every day to be productive.
 
 # License
 
