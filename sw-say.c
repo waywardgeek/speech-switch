@@ -299,8 +299,7 @@ int main(int argc, char *argv[]) {
         case 'f':
             textFileName = optarg;
             break;
-        case 'l':
-            {
+        case 'l': {
             uint32_t numEngines;
             char ** engines = swListEngines(swEnginesDir, &numEngines);
             uint32_t i, j;
@@ -309,7 +308,7 @@ int main(int argc, char *argv[]) {
                 if(engine != NULL) {
                     printf("%s\n", engines[i]);
                     uint32_t numVoices;
-                    char **voices = swGetVoices(engine, &numVoices);
+                    char **voices = swListVoices(engine, &numVoices);
                     for(j = 0; j < numVoices; j++) {
                         printf("    %s\n", voices[j]);
                     }
@@ -319,7 +318,7 @@ int main(int argc, char *argv[]) {
             }
             swFreeStringList(engines, numEngines);
             return 0;
-            }
+        }
         case 'p':
             pitch = atof(optarg);
             if(pitch > 100.0 || pitch < -100.0) {

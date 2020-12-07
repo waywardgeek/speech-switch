@@ -55,7 +55,7 @@ bool swSpeechCanceled(swEngine engine);
 uint32_t swGetSampleRate(swEngine engine);
 // Get a list of supported voices.  The caller can call swFreeStringList to free
 // them.
-char **swGetVoices(swEngine engine, uint32_t *numVoices);
+char **swListVoices(swEngine engine, uint32_t *numVoices);
 // List available variations on voices.
 char **swGetVariants(swEngine engine, uint32_t *numVariants);
 // Return the native encoding of the engine.

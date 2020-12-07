@@ -196,7 +196,7 @@ uint32_t swGetSampleRate(swEngine engine) {
 }
 
 // Get a list of supported voices.  The caller can call swFreeStrings
-char **swGetVoices(swEngine engine, uint32_t *numVoices) {
+char **swListVoices(swEngine engine, uint32_t *numVoices) {
     writeServer(engine, "get voices\n");
     return readStringList(engine, numVoices);
 }
