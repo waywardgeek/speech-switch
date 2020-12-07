@@ -7,7 +7,7 @@
 #include <getopt.h>
 #include "sonic.h"
 #include "util.h"
-#include "client.h"
+#include "speechsw.h"
 
 #define SONIC_BUFFER_SIZE 2048
 #define MAX_PARAGRAPH 2048
@@ -52,10 +52,10 @@ static void usage(void) {
 static void setEnginesDir(char *exeName) {
     if(strchr(exeName, '/') == NULL) {
         // Assume it's installed in default location
-        swEngineDir = "/usr/lib/speechswitch/engines";
+        swEngineDir = "/usr/lib/speechsw/engines";
     } else {
         // Assume relative to the executable
-        char *relPath = "/../lib/speechswitch/engines";
+        char *relPath = "/../lib/speechsw/engines";
         swEngineDir = calloc(strlen(exeName) + strlen(relPath) + 1, sizeof(char));
         strcpy(swEngineDir, exeName);
         char *p = strrchr(swEngineDir, '/');

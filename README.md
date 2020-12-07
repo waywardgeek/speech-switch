@@ -38,7 +38,7 @@ To compile the engines in Ubuntu or Debian, first install build dependencies for
 libttspico, espeak, and the Sonic speech speedup library.  Preferably, you will
 also have a valid license of voxin, so you can build the ibmtts engine.  To
 compile all the linux engines, type 'make'.  The resulting executables in
-lib/speechswitch should run on any 64-bit Linux distro.
+lib/speechsw should run on any 64-bit Linux distro.
 
 On Ubuntu, I install the base libraries with:
 

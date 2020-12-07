@@ -3,14 +3,14 @@ CFLAGS=-Wall -g --std=c99 -D_POSIX_SOURCE
 #CC=gcc
 CC=gcc
 
-ESPEAK=lib/speechswitch/engines/sw_espeak
-IBMTTS=lib/speechswitch/engines/sw_ibmtts
-PICO=lib/speechswitch/engines/sw_picotts
+ESPEAK=lib/speechsw/engines/sw_espeak
+IBMTTS=lib/speechsw/engines/sw_ibmtts
+PICO=lib/speechsw/engines/sw_picotts
 EXAMPLE=sw_example
 
 ENGINES=$(ESPEAK) $(IBMTTS) $(PICO) $(EXAMPLE)
 
-all: bin lib/speechswitch/engines $(ENGINES) bin/sw-say bin/speechswitch
+all: bin lib/speechsw/engines $(ENGINES) bin/sw-say bin/speechsw
 
 $(EXAMPLE): server.c example_engine.c util.c engine.h
 	$(CC) -O2 -I . -o $(EXAMPLE) example_engine.c server.c util.c -lespeak
@@ -25,22 +25,22 @@ $(IBMTTS): server.c ibmtts_engine.c util.c engine.h
 $(PICO): pico_engine.c server.c util.c engine.h
 	gcc $(CFLAGS) -o $(PICO) pico_engine.c server.c util.c -lttspico -lpopt -lm
 
-bin/sw-say: sw-say.c client.c ansi2ascii.c util.c wave.c engine.h client.h
-	gcc $(CFLAGS) -o bin/sw-say sw-say.c client.c ansi2ascii.c util.c wave.c -lsonic -lm
+bin/sw-say: sw-say.c speechsw.c ansi2ascii.c util.c wave.c engine.h speechsw.h
+	gcc $(CFLAGS) -o bin/sw-say sw-say.c speechsw.c ansi2ascii.c util.c wave.c -lsonic -lm
 
-bin/speechswitch: speechswitch.c client.c ansi2ascii.c util.c wave.c engine.h client.h
-	gcc $(CFLAGS) -o bin/speechswitch sw-say.c client.c ansi2ascii.c util.c wave.c -lsonic -lm
+bin/speechsw: speechsw.c speechsw.c ansi2ascii.c util.c wave.c engine.h speechsw.h
+	gcc $(CFLAGS) -o bin/speechsw sw-say.c speechsw.c ansi2ascii.c util.c wave.c -lsonic -lm
 
 bin:
 	mkdir bin
 
-lib/speechswitch/engines:
-	mkdir -p lib/speechswitch/engines
+lib/speechsw/engines:
+	mkdir -p lib/speechsw/engines
 
 install: all
-	install -d /usr/bin /usr/lib/speechswitch/engines
+	install -d /usr/bin /usr/lib/speechsw/engines
 	install bin/sw-say /usr/bin
-	install lib/speechswitch/engines/* /usr/lib/speechswitch/engines
+	install lib/speechsw/engines/* /usr/lib/speechsw/engines
 
 clean:
 	rm -f $(ENGINES) bin/sw-say
