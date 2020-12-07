@@ -36,20 +36,20 @@ ENGINES=$(ESPEAK) $(IBMTTS) $(PICO) $(EXAMPLE)
 
 all: $(ENGINES) bin/sw-say bin/speechsw
 
-$(EXAMPLE): server.c example_engine.c util.c engine.h lib/speechsw/engines
-	$(CC) -O2 -I . -o $(EXAMPLE) example_engine.c server.c util.c -lespeak
+$(EXAMPLE): engine.c example_engine.c util.c engine.h lib/speechsw/engines
+	$(CC) -O2 -I . -o $(EXAMPLE) example_engine.c engine.c util.c -lespeak
  
-$(ESPEAK): server.c espeak_engine.c util.c engine.h lib/speechsw/engines
-	$(CC) $(CFLAGS) -O2 -o $(ESPEAK) server.c util.c espeak_engine.c $(ESPEAK_LIB) -lm -pthread
+$(ESPEAK): engine.c espeak_engine.c util.c engine.h lib/speechsw/engines
+	$(CC) $(CFLAGS) -O2 -o $(ESPEAK) engine.c util.c espeak_engine.c $(ESPEAK_LIB) -lm -pthread
 	cp -r $(ESPEAK_DATA) lib/speechsw/data
 
 # Note that this cannot be compiled with -O2 due to unknown bugs.
-$(IBMTTS): server.c ibmtts_engine.c util.c engine.h lib/speechsw/engines
-	$(CC) $(CFLAGS) -I/opt/IBM/ibmtts/inc -o $(IBMTTS) server.c util.c ibmtts_engine.c $(IBMTTS_LIB)
+$(IBMTTS): engine.c ibmtts_engine.c util.c engine.h lib/speechsw/engines
+	$(CC) $(CFLAGS) -I/opt/IBM/ibmtts/inc -o $(IBMTTS) engine.c util.c ibmtts_engine.c $(IBMTTS_LIB)
 	cp -r $(IBMTTS_DATA) lib/speechsw/data
 
-$(PICO): pico_engine.c server.c util.c engine.h lib/speechsw/engines
-	gcc $(CFLAGS) -o $(PICO) pico_engine.c server.c util.c $(PICO_LIB) -lpopt -lm
+$(PICO): pico_engine.c engine.c util.c engine.h lib/speechsw/engines
+	gcc $(CFLAGS) -o $(PICO) pico_engine.c engine.c util.c $(PICO_LIB) -lpopt -lm
 	cp -r $(PICO_DATA) lib/speechsw/data
 
 bin/sw-say: bin sw-say.c speechsw.c ansi2ascii.c util.c wave.c engine.h speechsw.h
