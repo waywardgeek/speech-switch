@@ -10,7 +10,7 @@
 #include "util.h"
 
 // Initialize the engine.  synthdataPath is the path to your engine's data directory.
-bool swInitializeEngine(char *synthdataPath);
+bool swInitializeEngine(const char *synthdataPath);
 // Close the TTS Engine.
 bool swCloseEngine(void);
 // Return the sample rate in Hz
@@ -22,18 +22,18 @@ uint32_t swGetSampleRate(void);
 // name could be "Joey" or "English", and the language code "en-uk".
 char **swGetVoices(uint32_t *numVoices);
 // Select a voice.
-bool swSetVoice(char *voice);
+bool swSetVoice(const char *voice);
 // Set the speech speed.
 bool swSetSpeed(float speed);
 // Set the pitch.
 bool swSetPitch(float pitch);
 // Sarts synthesis of the text.  Block until all text is synthesized.
-bool swSpeakText(char *text);
+bool swSpeakText(const char *text);
 // The engine needs to pass the synthesized samples back to the system to be
 // processed with this callback.  speakText should block until all samples are
 // synthesized.  Samples are in 16-bit signed notation, from -32767 to 32767.
 // Returns true to continue synthesis, false to cancel.
-bool swProcessAudio(short *data, int numSamples);
+bool swProcessAudio(const short *data, int numSamples);
 // Set the punctuation level for the engine.  By default, it should be set to none.
 #define PUNCT_NONE 0
 #define PUNCT_SOME 1
@@ -46,7 +46,7 @@ bool swSetSSML(bool value);
 // means formant synthesizers, specifically espeak, and ibmtts.  Simply return
 // NULL if your synthesizer does not have voice variants.
 char **swGetVoiceVariants(uint32_t *numVariants);
-bool swSetVoiceVariant(char *variant);
+bool swSetVoiceVariant(const char *variant);
 
 // Some older engines like voxin don't support UTF-8.  These engines should call
 // this function from their initializeEngine routine to switch to ANSI.  The

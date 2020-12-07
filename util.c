@@ -9,8 +9,7 @@
 #include "util.h"
 
 // Just make a copy of a string.
-char *swCopyString(char *string)
-{
+char *swCopyString(const char *string) {
     char *newString = (char *)calloc(strlen(string) + 1, sizeof(char));
 
     strcpy(newString, string);
@@ -18,8 +17,7 @@ char *swCopyString(char *string)
 }
 
 // Just concatenate two strings.
-char *swCatStrings(char *string1, char *string2)
-{
+char *swCatStrings(const char *string1, const char *string2) {
     char *newString = (char *)calloc(strlen(string1) + strlen(string2) + 1, sizeof(char));
 
     strcpy(newString, string1);
@@ -28,7 +26,7 @@ char *swCatStrings(char *string1, char *string2)
 }
 
 // This utility is provided to list directory entries in a portable way.
-char **swListDirectory(char *dirName, uint32_t *numFiles)
+char **swListDirectory(const char *dirName, uint32_t *numFiles)
 {
     DIR *dir;
     struct dirent *entry;
@@ -76,7 +74,7 @@ void swFreeStringList(char **stringList, uint32_t numStrings)
 }
 
 // Make a copy of a string list.
-char **swCopyStringList(char **stringList, uint32_t numStrings)
+char **swCopyStringList(const char **stringList, uint32_t numStrings)
 {
     char **newList = (char **)calloc(numStrings, sizeof(char*));
     int i;
@@ -109,7 +107,7 @@ char *swReadLine(FILE *file) {
 }
 
 // Determine if the file exists and is readable.
-bool swFileReadable(char *fileName) {
+bool swFileReadable(const char *fileName) {
     return !access(fileName, R_OK);
 }
 
@@ -119,9 +117,9 @@ bool swFileReadable(char *fileName) {
 // child process simply uses stdin/stdout for communication.  The arguments to
 // the child process should be passed as additional parameters, ending with a
 // NULL.
-int swForkWithStdio(char *exePath, FILE **fin, FILE **fout, ...) {
+int swForkWithStdio(const char *exePath, FILE **fin, FILE **fout, ...) {
     // Build the parameter list
-    char *args[MAXARGS];
+    const char *(args[MAXARGS]);
     va_list ap;
     va_start(ap, fout);
     int i = 0;
@@ -152,7 +150,7 @@ int swForkWithStdio(char *exePath, FILE **fin, FILE **fout, ...) {
         dup2(pipes[0][1], STDOUT_FILENO);
         dup2(pipes[1][0], STDIN_FILENO);
         // Exec the program
-        execv(exePath, args);
+        execv(exePath, (char* const*)args);
     }
 
     // Parent program.  Create fin/fout and return.

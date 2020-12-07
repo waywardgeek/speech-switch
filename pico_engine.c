@@ -40,12 +40,8 @@
 
 /* string constants */
 #define MAX_OUTBUF_SIZE     512
-#ifdef picolangdir
-static char * PICO_LINGWARE_PATH             = picolangdir "/";
-#else
-static char * PICO_LINGWARE_PATH             = "/usr/share/pico/lang";
-#endif
-static char * PICO_VOICE_NAME                = "PicoVoice";
+static const char *PICO_LINGWARE_PATH = "/usr/share/pico/lang";
+static const char *PICO_VOICE_NAME = "PicoVoice";
 
 /* supported voices
    Pico does not seperately specify the voice and locale.   */
@@ -69,7 +65,7 @@ static char *picoSgResourceName = NULL;
 static char *picoSynthdataPath = NULL;
 
 // Find the language index of the named voice.  If it does not exist, return -1.
-static int findLanguageIndex(char *name)
+static int findLanguageIndex(const char *name)
 {
     int i;
 
@@ -82,7 +78,7 @@ static int findLanguageIndex(char *name)
 }
 
 // Load a voice
-static bool loadVoice(char *name)
+static bool loadVoice(const char *name)
 {
     bool foundLanguage = true;
     int langIndex = findLanguageIndex(name);
@@ -186,7 +182,7 @@ static void unloadVoice(void)
 }
 
 // Initialize the engine.
-bool swInitializeEngine(char *synthdataPath)
+bool swInitializeEngine(const char *synthdataPath)
 {
     pico_Retstring outMessage;
     int ret;
@@ -194,6 +190,8 @@ bool swInitializeEngine(char *synthdataPath)
 
     if(synthdataPath == NULL) {
         synthdataPath = PICO_LINGWARE_PATH;
+    } else {
+      synthdataPath = swCatStrings(synthdataPath, "/lang");
     }
     length = strlen(synthdataPath);
     picoSynthdataPath = (char *)calloc(length + 2, sizeof(char));
@@ -248,7 +246,7 @@ char **swGetVoices(uint32_t *numVoices)
 }
 
 // Select a voice.
-bool swSetVoice(char *voice)
+bool swSetVoice(const char *voice)
 {
     unloadVoice();
     return loadVoice(voice);
@@ -280,7 +278,7 @@ bool swSetSSML(bool value)
 }
 
 // Speak the text.  Block until finished.
-bool swSpeakText(char *text)
+bool swSpeakText(const char *text)
 {
     pico_Int16  textRemaining = strlen(text) + 1; /* includes terminating ‘\0’*/
     pico_Int16 bytesSent, bytesReceived, outDataType;
@@ -317,7 +315,7 @@ char **swGetVoiceVariants(uint32_t *numVariants)
 }
 
 // Select a voice variant.
-bool swSetVoiceVariant(char *variant)
+bool swSetVoiceVariant(const char *variant)
 {
     return true;
 }

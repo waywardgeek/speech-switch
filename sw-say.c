@@ -13,7 +13,9 @@
 #define MAX_PARAGRAPH 2048
 #define MIN_PARAGRAPH 1024
 
-static char *swEngineDir;
+static char *swLibDir;
+static char *swEnginesDir;
+static char *swDataDir;
 
 static char *swText;
 static uint32_t swTextLen, swTextPos;
@@ -48,19 +50,41 @@ static void usage(void) {
     exit(1);
 }
 
-// Find the location of the engines directory.
-static void setEnginesDir(char *exeName) {
+// Find the location of the lib directory.
+static void setDirectories(char *exeName) {
     if(strchr(exeName, '/') == NULL) {
         // Assume it's installed in default location
-        swEngineDir = "/usr/lib/speechsw/engines";
+        const char *libDir = "/usr/lib/speechsw";
+        if (access(libDir, R_OK)) {
+          libDir = "/usr/lib/speechsw";
+        }
+        swLibDir = swCopyString(libDir);
     } else {
         // Assume relative to the executable
-        char *relPath = "/../lib/speechsw/engines";
-        swEngineDir = calloc(strlen(exeName) + strlen(relPath) + 1, sizeof(char));
-        strcpy(swEngineDir, exeName);
-        char *p = strrchr(swEngineDir, '/');
-        *p = '\0';
-        strcat(swEngineDir, relPath);
+        const char *relPath = "../lib/speechsw";
+        swLibDir = calloc(strlen(exeName) + strlen(relPath) + 2, sizeof(char));
+        strcpy(swLibDir, exeName);
+        char *p = strrchr(swLibDir, '/');
+        if (p != NULL) {
+          p++;
+        } else {
+          p = swLibDir;
+        }
+        strcpy(p, relPath);
+    }
+    if (access(swLibDir, R_OK)) {
+      fprintf(stderr, "Cannot find %s\n", swLibDir);
+      exit(1);
+    }
+    swEnginesDir = swCatStrings(swLibDir, "/engines");
+    if (access(swEnginesDir, R_OK)) {
+      fprintf(stderr, "Cannot find %s\n", swEnginesDir);
+      exit(1);
+    }
+    swDataDir = swCatStrings(swLibDir, "/data");
+    if (access(swDataDir, R_OK)) {
+      fprintf(stderr, "Cannot find %s\n", swDataDir);
+      exit(1);
     }
 }
 
@@ -173,7 +197,7 @@ static void speakText(char *waveFileName, char *text, char *textFileName, char *
     // Start the speech engine
     // TODO: deal with data directory
     struct swContextSt context = {0,};
-    swEngine engine = swStart(swEngineDir, engineName, NULL, speechCallback, &context);
+    swEngine engine = swStart(swEnginesDir, engineName, swDataDir, speechCallback, &context);
     if(engine == NULL) {
         exit(1);
     }
@@ -258,7 +282,7 @@ int main(int argc, char *argv[]) {
     swTextLen = 128;
     swTextPos = 0;
     swText = calloc(swTextLen, sizeof(char));
-    setEnginesDir(argv[0]);
+    setDirectories(argv[0]);
     bool useSonicSpeed = false;
     bool useSonicPitch = false;
     swConvertToASCII = false;
@@ -277,10 +301,10 @@ int main(int argc, char *argv[]) {
         case 'l':
             {
             uint32_t numEngines;
-            char ** engines = swListEngines(swEngineDir, &numEngines);
+            char ** engines = swListEngines(swEnginesDir, &numEngines);
             uint32_t i, j;
             for(i = 0; i < numEngines; i++) {
-                swEngine engine = swStart(swEngineDir, engines[i], NULL, NULL, NULL);
+                swEngine engine = swStart(swEnginesDir, engines[i], NULL, NULL, NULL);
                 if(engine != NULL) {
                     printf("%s\n", engines[i]);
                     uint32_t numVoices;

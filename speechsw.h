@@ -35,7 +35,7 @@ typedef bool (*swCallback)(swEngine engine, int16_t *samples, uint32_t numSample
 // List available engines.
 char **swListEngines(char *enginesDirectory, uint32_t *numEngines);
 // Create and initialize a new swEngine object, and connect to the speech engine.
-swEngine swStart(char *enginesDirectory, char *engineName, char *engineDataDirectory,
+swEngine swStart(char *enginesDirectory, char *engineName, char *dataDirectory,
         swCallback callback, void *callbackContext);
 // Shut down the speech engine, and free the swEngine object.
 void swStop(swEngine engine);

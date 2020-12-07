@@ -564,7 +564,7 @@ static bool executeCommand(void)
 }
 
 // Convert the short data to hex, in big-endian format.
-static char *convertToHex(short *data, int numSamples)
+static char *convertToHex(const short *data, int numSamples)
 {
     int length = numSamples*4 + 1;
     int i, j;
@@ -589,7 +589,7 @@ static char *convertToHex(short *data, int numSamples)
 }
 
 // Send audio samples in hex to the client.  Return false if the client cancelled. 
-bool swProcessAudio(short *data, int numSamples)
+bool swProcessAudio(const short *data, int numSamples)
 {
     char *hexBuf = convertToHex(data, numSamples);
 

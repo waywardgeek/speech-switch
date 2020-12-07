@@ -25,7 +25,7 @@ static int synthCallback(short *data, int numSamples, espeak_EVENT *events)
 }
 
 // Initialize the engine.
-bool swInitializeEngine(char *synthdataPath)
+bool swInitializeEngine(const char *synthdataPath)
 {
     char *variantsDirName = "espeak-data/voices/!v";
     if(synthdataPath == NULL) {
@@ -104,7 +104,7 @@ char **swGetVoices(uint32_t *numVoices)
 }
 
 // Select a voice.
-bool swSetVoice(char *voice)
+bool swSetVoice(const char *voice)
 {
     char *fullVoice;
     bool retVal;
@@ -178,7 +178,7 @@ bool swSetSSML(bool value)
 }
 
 // Speak the text.  Block until finished.
-bool swSpeakText(char *text)
+bool swSpeakText(const char *text)
 {
     return espeak_Synth(text, strlen(text) + 1, 0, POS_CHARACTER, 0,
         espeakCHARS_UTF8 | ssmlFlag, NULL, NULL) == EE_OK;
@@ -192,7 +192,7 @@ char **swGetVoiceVariants(uint32_t *numVariants)
 }
 
 // Select a voice variant.
-bool swSetVoiceVariant(char *variant)
+bool swSetVoiceVariant(const char *variant)
 {
     free(currentVariant);
     if(strlen(variant) != 0) {
