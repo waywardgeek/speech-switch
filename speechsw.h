@@ -3,7 +3,8 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "wave.h"
+
+#define SW_API_VERSION 1
 
 typedef enum {
     SW_UTF8,

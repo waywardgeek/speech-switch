@@ -5,9 +5,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <getopt.h>
-#include "sonic.h"
-#include "util.h"
+#include <sonic.h>
 #include "speechsw.h"
+#include "util.h"
+#include "wave.h"
 
 #define SONIC_BUFFER_SIZE 2048
 #define MAX_PARAGRAPH 2048
