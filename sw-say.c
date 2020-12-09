@@ -36,22 +36,24 @@ static void usage(void) {
     fprintf(stderr,
         "Supported flags are:\n"
         "\n"
-        "-a             -- convert text to ASCI before being spoken\n"
-        "-e engine      -- name of supported engine, like espeak picotts or ibmtts\n"
-        "-f textFile    -- text file to be spoken\n"
-        "-l             -- list engines\n"
-        "-p pitch       -- speech pitch (1.0 is normal)\n"
-        "-P             -- use sonic to adjust pitch rather than the speech engine\n"
-        "-s speed       -- speech speed (1.0 is normal)\n"
-        "-S             -- use sonic to adjust speed rather than the speech engine\n"
-        "-v voice       -- name of voice to use\n"
-        "-w waveFile    -- output wave file rather than playing sound\n");
+        "-a             -- Convert text to ASCI before being spoken.\n"
+        "-e engine      -- Name of supported engine, like espeak picotts or ibmtts.\n"
+        "-f textFile    -- Text file to be spoken.\n"
+        "-l             -- List engines.\n"
+        "-L             -- List variants available for a given voice.  Use with -v.\n"
+        "-p pitch       -- Speech pitch (1.0 is normal).\n"
+        "-P             -- Use sonic to adjust pitch rather than the speech engine.\n"
+        "-s speed       -- Speech speed (1.0 is normal).\n"
+        "-S             -- Use sonic to adjust speed rather than the speech engine.\n"
+        "-v voice       -- Name of voice to use.\n"
+        "-V variant     -- List variants available for a given voice.\n"
+        "-w waveFile    -- Output wave file rather than playing sound.\n");
     exit(1);
 }
 
 // Find the location of the lib directory.
 static void setDirectories(char *exeName) {
-    if(strchr(exeName, '/') == NULL) {
+    if (strchr(exeName, '/') == NULL) {
         // Assume it's installed in default location
         const char *libDir = "/usr/lib/speechsw";
         if (access(libDir, R_OK)) {
@@ -80,7 +82,7 @@ static void setDirectories(char *exeName) {
 // Add text to be spoken to the text buffer.
 static void addText(char *p) {
     uint32_t len = strlen(p);
-    if(swTextPos + len + 1 >= swTextLen) {
+    if (swTextPos + len + 1 >= swTextLen) {
         swTextLen <<= 1;
         swText = swRealloc(swText, swTextLen, sizeof(char));
     }
@@ -96,28 +98,28 @@ static char *readParagraph(FILE *file) {
     uint32_t pos = 0;
     int c = getc(file);
     while(c != EOF && pos < MAX_PARAGRAPH) {
-        if(c <= ' ') {
+        if (c <= ' ') {
             while(c <= ' ' && c != EOF) {
                 c = getc(file);
             }
-            if(c != EOF) {
+            if (c != EOF) {
                 ungetc(c, file);
             }
             c = ' ';
         }
-        if(!swConvertToASCII) {
+        if (!swConvertToASCII) {
             swParagraph[pos++] = c;
         } else {
             char *word = swConvertANSIToASCII(c);
             strcpy(swParagraph + pos, word);
             pos += strlen(word);
         }
-        if(c == '.' && pos >= MIN_PARAGRAPH) {
+        if (c == '.' && pos >= MIN_PARAGRAPH) {
             break;
         }
         c = getc(file);
     }
-    if(pos == 0 && c == EOF) {
+    if (pos == 0 && c == EOF) {
         return NULL;
     }
     swParagraph[pos] = '\0';
@@ -138,20 +140,20 @@ static FILE *openDefaultSoundDevice(uint32_t sampleRate) {
 
 // Run sonic to adjust speed and/or pitch
 static uint32_t adjustSamples(swContext context, int16_t *samples, uint32_t numSamples) {
-    if(numSamples == 0) {
+    if (numSamples == 0) {
         sonicFlushStream(context->sonic);
     } else {
         sonicWriteShortToStream(context->sonic, samples, numSamples);
     }
     uint32_t newNumSamples = sonicSamplesAvailable(context->sonic);
-    if(newNumSamples == 0) {
+    if (newNumSamples == 0) {
         return 0;
     }
-    if(newNumSamples > context->bufferSize) {
+    if (newNumSamples > context->bufferSize) {
         context->bufferSize = newNumSamples << 1;
         context->samples = swRealloc(context->samples, context->bufferSize, sizeof(int16_t));
     }
-    if(sonicReadShortFromStream(context->sonic, context->samples, newNumSamples) != newNumSamples) {
+    if (sonicReadShortFromStream(context->sonic, context->samples, newNumSamples) != newNumSamples) {
         fprintf(stderr, "Error reading from sonic stream\n");
         exit(1);
     }
@@ -163,14 +165,14 @@ static uint32_t adjustSamples(swContext context, int16_t *samples, uint32_t numS
 static bool speechCallback(swEngine engine, int16_t *samples, uint32_t numSamples,
         bool cancelled, void *callbackContext) {
     swContext context = (swContext)callbackContext;
-    if(context->sonic != NULL) {
+    if (context->sonic != NULL) {
         numSamples = adjustSamples(context, samples, numSamples);
         // adjustSamples writes the new samples to context->samples
         samples = context->samples;
     }
-    if(context->outWaveFile != NULL) {
+    if (context->outWaveFile != NULL) {
         swWriteToWaveFile(context->outWaveFile, samples, numSamples);
-    } else if(context->outStream != NULL) {
+    } else if (context->outStream != NULL) {
         size_t samplesWritten = 0;
         while(samplesWritten < numSamples) {
             samplesWritten += fwrite(samples + samplesWritten, sizeof(int16_t),
@@ -182,46 +184,51 @@ static bool speechCallback(swEngine engine, int16_t *samples, uint32_t numSample
 
 // Speak the text.  Do this in a stream oriented way.
 static void speakText(char *waveFileName, char *text, char *textFileName, char *engineName,
-        char *voice, float speed, float pitch, bool useSonicSpeed, bool useSonicPitch) {
+        char *voice, char *variant, float speed, float pitch, bool useSonicSpeed,
+        bool useSonicPitch) {
     // Start the speech engine
-    // TODO: deal with data directory
     struct swContextSt context = {0,};
     swEngine engine = swStart(swLibDir, engineName, speechCallback, &context);
-    if(engine == NULL) {
+    if (engine == NULL) {
         exit(1);
     }
     uint32_t sampleRate = swGetSampleRate(engine);
-    if(waveFileName != NULL) {
+    if (waveFileName != NULL) {
         // Open the output wave file.
         context.outWaveFile = swOpenOutputWaveFile(waveFileName, sampleRate, 1);
     } else {
         // Play to speaker
         context.outStream = openDefaultSoundDevice(sampleRate);
     }
-    if(voice != NULL) {
+    if (voice != NULL) {
         swSetVoice(engine, voice);
+    }
+    if (variant != NULL) {
+      if (!swSetVariant(engine, variant)) {
+        fprintf(stderr, "Could not set voice variant to %s\n", variant);
+      }
     }
     float sonicSpeed = 1.0;
     float sonicPitch = 1.0;
-    if(speed != 0.0 && (useSonicSpeed || !swSetSpeed(engine, speed))) {
+    if (speed != 0.0 && (useSonicSpeed || !swSetSpeed(engine, speed))) {
         useSonicSpeed = true;
         // Map [-100 .. 100] to [1/6 .. 6]
-        if(speed > 0.0) {
+        if (speed > 0.0) {
             sonicSpeed = 1.0 + speed*5.0/100.0;
         } else {
             sonicSpeed = 1.0/(1.0 - speed*5.0/100.0);
         }
     }
-    if(pitch != 0.0 && (useSonicPitch || !swSetPitch(engine, pitch))) {
+    if (pitch != 0.0 && (useSonicPitch || !swSetPitch(engine, pitch))) {
         useSonicPitch = true;
         // Map [-100 .. 100] to [1/2 .. 2]
-        if(pitch > 0.0) {
+        if (pitch > 0.0) {
             sonicPitch = 1.0 + pitch/100.0;
         } else {
             sonicPitch = 1.0/(1.0 - pitch/100.0);
         }
     }
-    if(useSonicSpeed || useSonicPitch) {
+    if (useSonicSpeed || useSonicPitch) {
         context.sonic = sonicCreateStream(sampleRate, 1);
         sonicSetSpeed(context.sonic, sonicSpeed);
         sonicSetPitch(context.sonic, sonicPitch);
@@ -229,9 +236,9 @@ static void speakText(char *waveFileName, char *text, char *textFileName, char *
         context.samples = swCalloc(SONIC_BUFFER_SIZE, sizeof(int16_t));
     }
     // TODO: break this into paragraphs
-    if(textFileName != NULL) {
+    if (textFileName != NULL) {
         FILE *file = fopen(textFileName, "r");
-        if(file == NULL) {
+        if (file == NULL) {
             fprintf(stderr, "Unable to read text file %s\n", textFileName);
             exit(1);
         }
@@ -244,17 +251,17 @@ static void speakText(char *waveFileName, char *text, char *textFileName, char *
     } else {
         swSpeak(engine, text, true);
     }
-    if(useSonicSpeed || useSonicPitch) {
+    if (useSonicSpeed || useSonicPitch) {
         uint32_t numSamples = adjustSamples(&context, NULL, 0);
         sonicDestroyStream(context.sonic);
-        if(numSamples > 0 && !swSpeechCanceled(engine)) {
+        if (numSamples > 0 && !swSpeechCanceled(engine)) {
             // Don't call sonic again
             context.sonic = NULL;
             speechCallback(engine, context.samples, numSamples, false, &context);
         }
         swFree(context.samples);
     }
-    if(waveFileName != NULL) {
+    if (waveFileName != NULL) {
         swCloseWaveFile(context.outWaveFile);
     } else {
         fclose(context.outStream);
@@ -268,6 +275,8 @@ int main(int argc, char *argv[]) {
     float pitch = 0.0;
     char *waveFileName = NULL;
     char *voiceName = NULL;
+    char *voiceVariant = NULL;
+    bool listVariants = false;
     swTextLen = 128;
     swTextPos = 0;
     swText = swCalloc(swTextLen, sizeof(char));
@@ -276,7 +285,7 @@ int main(int argc, char *argv[]) {
     bool useSonicPitch = false;
     swConvertToASCII = false;
     int opt;
-    while ((opt = getopt(argc, argv, "ae:f:lnp:Ps:Sv:w:")) != -1) {
+    while ((opt = getopt(argc, argv, "ae:f:lLnp:Ps:Sv:V:w:")) != -1) {
         switch (opt) {
         case 'a':
             swConvertToASCII = true;
@@ -289,11 +298,11 @@ int main(int argc, char *argv[]) {
             break;
         case 'l': {
             uint32_t numEngines;
-            char ** engines = swListEngines(swLibDir, &numEngines);
+            char **engines = swListEngines(swLibDir, &numEngines);
             uint32_t i, j;
             for(i = 0; i < numEngines; i++) {
                 swEngine engine = swStart(swLibDir, engines[i], NULL, NULL);
-                if(engine != NULL) {
+                if (engine != NULL) {
                     printf("%s\n", engines[i]);
                     uint32_t numVoices;
                     char **voices = swListVoices(engine, &numVoices);
@@ -307,9 +316,12 @@ int main(int argc, char *argv[]) {
             swFreeStringList(engines, numEngines);
             return 0;
         }
+        case 'L':
+            listVariants = true;
+            break;
         case 'p':
             pitch = atof(optarg);
-            if(pitch > 100.0 || pitch < -100.0) {
+            if (pitch > 100.0 || pitch < -100.0) {
                 fprintf(stderr, "Pitch must be a floating point value from -100 to 100.\n");
                 usage();
             }
@@ -319,7 +331,7 @@ int main(int argc, char *argv[]) {
             break;
         case 's':
             speed = atof(optarg);
-            if(speed > 100.0 || speed < -100.0) {
+            if (speed > 100.0 || speed < -100.0) {
                 fprintf(stderr, "Speed must be a floating point value from -100 to 100.\n");
                 usage();
             }
@@ -330,6 +342,9 @@ int main(int argc, char *argv[]) {
         case 'v':
             voiceName = optarg;
             break;
+        case 'V':
+            voiceVariant = optarg;
+            break;
         case 'w':
             waveFileName = optarg;
             break;
@@ -338,8 +353,23 @@ int main(int argc, char *argv[]) {
             usage();
         }
     }
+    if (listVariants) {
+        swEngine engine = swStart(swLibDir, engineName, NULL, NULL);
+        if (engine == NULL) {
+          fprintf(stderr, "Unable to start engine %s\n", engineName);
+          return 0;
+        }
+        uint32_t numVariants;
+        char **variants = swGetVariants(engine, &numVariants);
+        for(uint32_t i = 0; i < numVariants; i++) {
+            printf("%s\n", variants[i]);
+        }
+        swFreeStringList(variants, numVariants);
+        swStop(engine);
+        return 0;
+    }
     if (optind < argc) {
-        if(textFileName != NULL) {
+        if (textFileName != NULL) {
             fprintf(stderr, "Unexpected text on command line while using -f flag\n");
             usage();
         }
@@ -349,10 +379,10 @@ int main(int argc, char *argv[]) {
         for(i = optind; i < argc; i++) {
             addText(argv[i]);
         }
-    } else if(textFileName == NULL) {
+    } else if (textFileName == NULL) {
         addText("Hello, World!");
     }
-    speakText(waveFileName, swText, textFileName, engineName, voiceName, speed,
+    speakText(waveFileName, swText, textFileName, engineName, voiceName, voiceVariant, speed,
             pitch, useSonicSpeed, useSonicPitch);
     return 0;
 }

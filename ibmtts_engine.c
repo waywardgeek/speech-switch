@@ -1,4 +1,4 @@
-// Speech-Hub interface to the IBM TTS engine.
+// SpeechSwitch interface to the IBM TTS engine.
 
 #include <stdio.h> // Only for debugging
 #include <stdlib.h>

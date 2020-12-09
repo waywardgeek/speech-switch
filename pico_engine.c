@@ -1,4 +1,4 @@
-// Speech-Hub interface to the svox pico TTS engine.
+// SpeechSwitch interface to the svox pico TTS engine.
 
 // This was written in 2011 by Bill Cox, with much code copied directly from
 // pico2wave.c from the Debian svox package.  I claim no additional copyright to
@@ -46,7 +46,7 @@ static const char *PICO_VOICE_NAME = "PicoVoice";
 /* supported voices
    Pico does not seperately specify the voice and locale.   */
 static char *picoLanguageNames[] = {"US English", "UK English", "German", "Spanish", "French", "Italian"};
-static char *picoSupportedLang[] = {"en-us", "en-gb", "de-de", "es-es", "fr-fr", "it-it"};
+static char *picoSupportedLang[] = {"en-us", "en-gb", "de", "es", "fr", "it"};
 static char *picoInternalTaLingware[] = {"en-US_ta.bin", "en-GB_ta.bin", "de-DE_ta.bin", "es-ES_ta.bin", "fr-FR_ta.bin", "it-IT_ta.bin"};
 static char *picoInternalSgLingware[] = {"en-US_lh0_sg.bin", "en-GB_kh0_sg.bin", "de-DE_gl0_sg.bin", "es-ES_zl0_sg.bin", "fr-FR_nk0_sg.bin", "it-IT_cm0_sg.bin"};
 static int picoNumSupportedVoices = 6;

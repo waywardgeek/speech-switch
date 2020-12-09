@@ -34,7 +34,7 @@ typedef bool (*swCallback)(swEngine engine, int16_t *samples, uint32_t numSample
 // These functions start/stop engines and synthesize speech.
 
 // List available engines.
-char **swListEngines(char *libDirectory, uint32_t *numEngines);
+char **swListEngines(const char *libDirectory, uint32_t *numEngines);
 // Create and initialize a new swEngine object, and connect to the speech engine.
 swEngine swStart(const char *libDirectory, const char *engineName,
     swCallback callback, void *callbackContext);
@@ -43,7 +43,7 @@ void swStop(swEngine engine);
 // Synthesize speech samples.  Synthesized samples will be passed to the 
 // callback function passed to swStart.  To continue receiving samples, the
 // callback should return true.  Returning false will cancel further speech.
-bool swSpeak(swEngine engine, char *text, bool isUTF8);
+bool swSpeak(swEngine engine, const char *text, bool isUTF8);
 
 // These fucntions control speech synthesis parameters.
 
@@ -61,9 +61,9 @@ char **swGetVariants(swEngine engine, uint32_t *numVariants);
 // Return the native encoding of the engine.
 swEncoding swGetEncoding(swEngine engine);
 // Select a voice by it's identifier
-bool swSetVoice(swEngine engine, char *voice);
+bool swSetVoice(swEngine engine, const char *voice);
 // Select a voice variant by it's identifier
-bool swSetVariant(swEngine engine, char *variant);
+bool swSetVariant(swEngine engine, const char *variant);
 // Set the pitch.  0 means default, -100 is min pitch, and 100 is max pitch.
 bool swSetPitch(swEngine engine, float pitch);
 // Set the punctuation level: none, some, most, or all.

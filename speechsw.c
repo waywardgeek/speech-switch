@@ -49,7 +49,7 @@ static void writeBool(swEngine engine, bool value) {
 }
 
 // List available engines.
-char **swListEngines(char *enginesDirectory, uint32_t *numEngines) {
+char **swListEngines(const char *enginesDirectory, uint32_t *numEngines) {
     char **engines = swListDirectory(enginesDirectory, numEngines);
     return engines;
 }
@@ -141,7 +141,7 @@ static int16_t *readSpeechData(swEngine engine, uint32_t *numSamples) {
 // Synthesize speech samples.  Synthesized samples will be passed to the 
 // callback function passed to swStart.  To continue receiving samples, the
 // callback should return true.  Returning false will cancel further speech.
-bool swSpeak(swEngine engine, char *text, bool isUTF8) {
+bool swSpeak(swEngine engine, const char *text, bool isUTF8) {
     // TODO: deal with isUTF8
     // TODO: replace any \n. with \n..
     engine->cancel = false;
@@ -215,7 +215,7 @@ bool swSetPitch(swEngine engine, float pitch) {
 }
 
 // Select a voice by it's identifier
-bool swSetVoice(swEngine engine, char *voice) {
+bool swSetVoice(swEngine engine, const char *voice) {
     writeServer(engine, "set voice %s\n", voice);
     return expectTrue(engine);
 }
@@ -249,7 +249,7 @@ char **swGetVariants(swEngine engine, uint32_t *numVariants) {
 }
 
 // Select a voice variant by it's identifier
-bool swSetVariant(swEngine engine, char *variant) {
+bool swSetVariant(swEngine engine, const char *variant) {
     writeServer(engine, "set variant %s\n", variant);
     return expectTrue(engine);
 }

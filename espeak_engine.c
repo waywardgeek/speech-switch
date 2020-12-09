@@ -1,4 +1,4 @@
-// Speech-Hub interface to the espeak TTS engine.
+// SpeechSwitch interface to the espeak TTS engine.
 
 #include <stdlib.h>
 #include <string.h>
