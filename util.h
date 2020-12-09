@@ -10,12 +10,21 @@ bool swFileReadable(const char *fileName);
 char *swCopyString(const char *string);
 // Concatenate two strings.  The caller is responsible for calling free.
 char *swCatStrings(const char *string1, const char *string2);
+// Create a formatted string.  Caller is responsible for freeing result.
+char *swSprintf(const char *format, ...);
 // This function frees a voice list created with getVoices.
 void swFreeStringList(char **stringList, uint32_t numStrings);
 char **swCopyStringList(const char **stringList, uint32_t numStrings);
 // Read up to a newline or EOF.  Do not include the newline character.
 // The result must be freed by the caller.
 char *swReadLine(FILE *file);
+
+// Call calloc, and exit on failure with an error message to stderr.
+void *swCalloc(size_t numElements, size_t elementSize);
+// Call recalloc, and exit on failure with an error message to stderr.
+void *swRealloc(void *mem, size_t numElements, size_t elementSize);
+// Free memory.
+void swFree(void *mem);
 
 // Create a child process and return two FILE objects for communication.  The
 // child process simply uses stdin/stdout for communication.  The arguments to

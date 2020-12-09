@@ -92,7 +92,7 @@ static bool loadVoice(const char *name)
 
     /* Load the text analysis Lingware resource file. */
     fileName = picoInternalTaLingware[langIndex];
-    picoTaFileName = (char *)calloc(strlen(picoSynthdataPath) + strlen(fileName) + 1, sizeof(char));
+    picoTaFileName = (char *)swCalloc(strlen(picoSynthdataPath) + strlen(fileName) + 1, sizeof(char));
     strcpy((char *)picoTaFileName, picoSynthdataPath);
     strcat((char *)picoTaFileName, fileName);
     ret = pico_loadResource(picoSystem, (pico_Char *)picoTaFileName, &picoTaResource);
@@ -103,7 +103,7 @@ static bool loadVoice(const char *name)
     }
     /* Load the signal generation Lingware resource file. */
     fileName = picoInternalSgLingware[langIndex];
-    picoSgFileName = (char *)calloc(strlen(picoSynthdataPath) + strlen(fileName) + 1, sizeof(char));
+    picoSgFileName = (char *)swCalloc(strlen(picoSynthdataPath) + strlen(fileName) + 1, sizeof(char));
     strcpy((char *)picoSgFileName, picoSynthdataPath);
     strcat((char *)picoSgFileName, fileName);
     ret = pico_loadResource(picoSystem, (pico_Char *)picoSgFileName, &picoSgResource);
@@ -113,7 +113,7 @@ static bool loadVoice(const char *name)
         return false;
     }
     /* Get the text analysis resource name. */
-    picoTaResourceName = (char *)calloc(PICO_MAX_RESOURCE_NAME_SIZE, sizeof(char));
+    picoTaResourceName = (char *)swCalloc(PICO_MAX_RESOURCE_NAME_SIZE, sizeof(char));
     ret = pico_getResourceName(picoSystem, picoTaResource, (char *)picoTaResourceName);
     if(ret) {
         pico_getSystemStatusMessage(picoSystem, ret, outMessage);
@@ -121,7 +121,7 @@ static bool loadVoice(const char *name)
         return false;
     }
     /* Get the signal generation resource name. */
-    picoSgResourceName = (char *)calloc(PICO_MAX_RESOURCE_NAME_SIZE, sizeof(char));
+    picoSgResourceName = (char *)swCalloc(PICO_MAX_RESOURCE_NAME_SIZE, sizeof(char));
     ret = pico_getResourceName(picoSystem, picoSgResource, (char *)picoSgResourceName);
     if(ret) {
         pico_getSystemStatusMessage(picoSystem, ret, outMessage);
@@ -194,7 +194,7 @@ bool swInitializeEngine(const char *synthdataPath)
       synthdataPath = swCatStrings(synthdataPath, "/lang");
     }
     length = strlen(synthdataPath);
-    picoSynthdataPath = (char *)calloc(length + 2, sizeof(char));
+    picoSynthdataPath = (char *)swCalloc(length + 2, sizeof(char));
     strcpy(picoSynthdataPath, synthdataPath);
     if(length == 0 || synthdataPath[length - 1] != '/') {
         strcpy(picoSynthdataPath + length, "/");
@@ -233,11 +233,11 @@ char **swGetVoices(uint32_t *numVoices)
     uint32_t i;
 
     *numVoices = picoNumSupportedVoices;
-    voices = (char **)calloc(picoNumSupportedVoices, sizeof(char *));
+    voices = (char **)swCalloc(picoNumSupportedVoices, sizeof(char *));
     for(i = 0; i <picoNumSupportedVoices; i++) {
         name = picoLanguageNames[i];
         language = picoSupportedLang[i];
-        voices[i] = (char *)calloc(strlen(name) + strlen(language) + 2, sizeof(char));
+        voices[i] = (char *)swCalloc(strlen(name) + strlen(language) + 2, sizeof(char));
         strcpy(voices[i], name);
         strcat(voices[i], ",");
         strcat(voices[i], language);

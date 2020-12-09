@@ -178,10 +178,10 @@ char **swGetVoices(uint32_t *numVoices)
         *numVoices = 0;
         return NULL;
     }
-    voices = (char **)calloc(*numVoices, sizeof(char *));
+    voices = (char **)swCalloc(*numVoices, sizeof(char *));
     for(i = 0; i < *numVoices; i++) {
         locale = findLocaleFromID(language[i]);
-        voices[i] = (char *)calloc(strlen(locale.name) + strlen(locale.lang) + strlen(locale.dialect) + 3,
+        voices[i] = (char *)swCalloc(strlen(locale.name) + strlen(locale.lang) + strlen(locale.dialect) + 3,
             sizeof(char));
         strcpy(voices[i], locale.name);
         strcat(voices[i], ",");

@@ -39,7 +39,7 @@ bool swInitializeEngine(const char *synthdataPath)
         fprintf(stderr, "Unable to read espeak data from %s\n", synthdataPath);
         return false;
     }
-    variantsDir = (char *)calloc(strlen(synthdataPath) + strlen(variantsDirName) + 2, sizeof(char));
+    variantsDir = (char *)swCalloc(strlen(synthdataPath) + strlen(variantsDirName) + 2, sizeof(char));
     strcpy(variantsDir, synthdataPath);
     if(synthdataPath[strlen(synthdataPath)] != '/') {
         strcat(variantsDir, "/");
@@ -59,9 +59,9 @@ bool swInitializeEngine(const char *synthdataPath)
 // Close the TTS Engine.
 bool swCloseEngine(void)
 {
-    free(variantsDir);
-    free(currentVoice);
-    free(currentVariant);
+    swFree(variantsDir);
+    swFree(currentVoice);
+    swFree(currentVariant);
     return espeak_Terminate() == EE_OK;
 }
 
@@ -86,14 +86,14 @@ char **swGetVoices(uint32_t *numVoices)
             (*numVoices)++;
         }
     }
-    voices = (char **)calloc(*numVoices, sizeof(char *));
+    voices = (char **)swCalloc(*numVoices, sizeof(char *));
     xVoice = 0;
     for(i = 0; espeakVoices[i] != NULL; i++) {
         identifier = espeakVoices[i]->identifier;
         if(strncmp(identifier, "mb/", 3)) {
             name = espeakVoices[i]->name;
             language = espeakVoices[i]->languages + 1;
-            voices[xVoice] = (char *)calloc(strlen(name) + strlen(language) + 2, sizeof(char));
+            voices[xVoice] = (char *)swCalloc(strlen(name) + strlen(language) + 2, sizeof(char));
             strcpy(voices[xVoice], name);
             strcat(voices[xVoice], ",");
             strcat(voices[xVoice], language);
@@ -112,10 +112,10 @@ bool swSetVoice(const char *voice)
     fullVoice = swCatStrings(voice, currentVariant);
     retVal = espeak_SetVoiceByName(fullVoice) == EE_OK;
     if(retVal) {
-        free(currentVoice);
+        swFree(currentVoice);
         currentVoice = swCopyString(voice);
     }
-    free(fullVoice);
+    swFree(fullVoice);
     return retVal;
 }
 
@@ -194,7 +194,7 @@ char **swGetVoiceVariants(uint32_t *numVariants)
 // Select a voice variant.
 bool swSetVoiceVariant(const char *variant)
 {
-    free(currentVariant);
+    swFree(currentVariant);
     if(strlen(variant) != 0) {
         currentVariant = swCatStrings("+", variant);
     } else {

@@ -461,7 +461,7 @@ static bool readText(void)
         length = strlen(lineBuf);
         if(textBufferSize < pos + length + 1) {
             textBufferSize = (pos + length) << 1;
-            textBuffer = (uchar *)realloc(textBuffer, textBufferSize*sizeof(uchar));
+            textBuffer = (uchar *)swRealloc(textBuffer, textBufferSize, sizeof(uchar));
         }
         strcpy((char *)textBuffer + pos, lineBuf);
         pos += length;
@@ -573,7 +573,7 @@ static char *convertToHex(const short *data, int numSamples)
 
     if(length > speechBufferSize) {
         speechBufferSize = length << 1;
-        speechBuffer = (uchar *)realloc(speechBuffer, speechBufferSize*sizeof(char));
+        speechBuffer = (uchar *)swRealloc(speechBuffer, speechBufferSize, sizeof(char));
     }
     p = (char *)speechBuffer;
     for(i = 0; i < numSamples; i++) {
@@ -617,7 +617,7 @@ int main(int argc, char **argv)
         /* Cygwin hack: cywin basically complains to death if you don't do this.
            Basically, we have to remove the drive letter and replace with /cygwin */
         if(strlen(synthDataDir) > 2 && synthDataDir[1] == ':') {
-            char *buf = (char *)calloc(strlen(synthDataDir) + 10, sizeof(char));
+            char *buf = swCalloc(strlen(synthDataDir) + 10, sizeof(char));
             sprintf(buf, "/cygdrive/%c%s", synthDataDir[0], synthDataDir + 2);
             synthDataDir = buf;
         }
@@ -635,12 +635,12 @@ int main(int argc, char **argv)
         return 1;
     }
     speechBufferSize = 4096;
-    speechBuffer = (uchar *)calloc(speechBufferSize, sizeof(char));
+    speechBuffer = (uchar *)swCalloc(speechBufferSize, sizeof(char));
     textBufferSize = 4096;
-    textBuffer = (uchar *)calloc(textBufferSize, sizeof(char));
+    textBuffer = (uchar *)swCalloc(textBufferSize, sizeof(char));
     while(readLine() && executeCommand());
-    free(textBuffer);
-    free(speechBuffer);
+    swFree(textBuffer);
+    swFree(speechBuffer);
     swCloseEngine();
     return 0;
 }

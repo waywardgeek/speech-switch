@@ -3,9 +3,9 @@ CFLAGS=-Wall -g --std=c99 -D_POSIX_SOURCE
 #CC=gcc
 CC=gcc
 
-ESPEAK=lib/speechsw/engines/sw_espeak
-IBMTTS=lib/speechsw/engines/sw_ibmtts
-PICO=lib/speechsw/engines/sw_picotts
+ESPEAK=lib/speechsw/espeak/sw_espeak
+IBMTTS=lib/speechsw/ibmtts/sw_ibmtts
+PICOTTS=lib/speechsw/picotts/sw_picotts
 EXAMPLE=sw_example
 
 # You must manually build the supported speech synths on your system first.
@@ -25,52 +25,39 @@ ESPEAK_DATA=../espeak-ng/espeak-ng-data
 IBMTTS_LIB=/opt/oralux/voxin/lib/libvoxin.so
 IBMTTS_DATA=/opt/IBM/ibmtts/voicedata/
 
-# PICO
+# PICOTTS
 # Source downloaded with 'git clone https://github.com/naggety/picotts.git'
 # git commit: e3ba46009ee868911fa0b53db672a55f9cc13b1c
 # Configure picotts in the pico subdirectory with './configure'.
-PICO_LIB=../picotts/pico/.libs/libttspico.a
-PICO_DATA=../picotts/pico/lang
+PICOTTS_LIB=../picotts/pico/.libs/libttspico.a
+PICOTTS_DATA=../picotts/pico/lang
 
-ENGINES=$(ESPEAK) $(IBMTTS) $(PICO) $(EXAMPLE)
+ENGINES=$(ESPEAK) $(IBMTTS) $(PICOTTS) $(EXAMPLE)
 
-all: $(ENGINES) bin/sw-say bin/speechsw
+all: $(ENGINES) bin/sw-say
 
-$(EXAMPLE): engine.c example_engine.c util.c engine.h lib/speechsw/engines
+$(EXAMPLE): engine.c example_engine.c util.c engine.h
 	$(CC) -O2 -I . -o $(EXAMPLE) example_engine.c engine.c util.c -lespeak
  
-$(ESPEAK): engine.c espeak_engine.c util.c engine.h lib/speechsw/engines
+$(ESPEAK): engine.c espeak_engine.c util.c engine.h
+	mkdir -p $(dir $(ESPEAK))
 	$(CC) $(CFLAGS) -O2 -o $(ESPEAK) engine.c util.c espeak_engine.c $(ESPEAK_LIB) -lm -pthread
-	cp -r $(ESPEAK_DATA) lib/speechsw/data
+	cp -r $(ESPEAK_DATA) $(dir $(ESPEAK))
 
 # Note that this cannot be compiled with -O2 due to unknown bugs.
-$(IBMTTS): engine.c ibmtts_engine.c util.c engine.h lib/speechsw/engines
+$(IBMTTS): engine.c ibmtts_engine.c util.c engine.h
+	mkdir -p $(dir $(IBMTTS))
 	$(CC) $(CFLAGS) -I/opt/IBM/ibmtts/inc -o $(IBMTTS) engine.c util.c ibmtts_engine.c $(IBMTTS_LIB)
-	cp -r $(IBMTTS_DATA) lib/speechsw/data
+	cp -r $(IBMTTS_DATA) $(dir $(IBMTTS))
 
-$(PICO): pico_engine.c engine.c util.c engine.h lib/speechsw/engines
-	gcc $(CFLAGS) -o $(PICO) pico_engine.c engine.c util.c $(PICO_LIB) -lpopt -lm
-	cp -r $(PICO_DATA) lib/speechsw/data
+$(PICOTTS): pico_engine.c engine.c util.c engine.h
+	mkdir -p $(dir $(PICOTTS))
+	gcc $(CFLAGS) -o $(PICOTTS) pico_engine.c engine.c util.c $(PICOTTS_LIB) -lpopt -lm
+	cp -r $(PICOTTS_DATA) $(dir $(PICOTTS))
 
-bin/sw-say: bin sw-say.c speechsw.c ansi2ascii.c util.c wave.c engine.h speechsw.h
+bin/sw-say: sw-say.c speechsw.c ansi2ascii.c util.c wave.c engine.h speechsw.h
+	mkdir -p bin
 	gcc $(CFLAGS) -o bin/sw-say sw-say.c speechsw.c ansi2ascii.c util.c wave.c -lsonic -lm
-
-bin/speechsw: speechsw.c speechsw.c ansi2ascii.c util.c wave.c engine.h speechsw.h
-	gcc $(CFLAGS) -o bin/speechsw sw-say.c speechsw.c ansi2ascii.c util.c wave.c -lsonic -lm
-
-bin:
-	mkdir bin
-
-lib/speechsw/engines: lib/speechsw/data
-	mkdir -p lib/speechsw/engines
-
-lib/speechsw/data:
-	mkdir -p lib/speechsw/data
-
-install: all
-	install -d /usr/bin /usr/lib/speechsw/engines
-	install bin/sw-say /usr/bin
-	install lib/speechsw/engines/* /usr/lib/speechsw/engines
 
 clean:
 	rm -r bin lib

@@ -1,7 +1,7 @@
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>
 #include <dirent.h>
 #include <stdarg.h>
 #include <unistd.h>
@@ -10,29 +10,25 @@
 
 // Just make a copy of a string.
 char *swCopyString(const char *string) {
-    char *newString = (char *)calloc(strlen(string) + 1, sizeof(char));
-
+    char *newString = swCalloc(strlen(string) + 1, sizeof(char));
     strcpy(newString, string);
     return newString;
 }
 
 // Just concatenate two strings.
 char *swCatStrings(const char *string1, const char *string2) {
-    char *newString = (char *)calloc(strlen(string1) + strlen(string2) + 1, sizeof(char));
-
+    char *newString = swCalloc(strlen(string1) + strlen(string2) + 1, sizeof(char));
     strcpy(newString, string1);
     strcat(newString, string2);
     return newString;
 }
 
 // This utility is provided to list directory entries in a portable way.
-char **swListDirectory(const char *dirName, uint32_t *numFiles)
-{
+char **swListDirectory(const char *dirName, uint32_t *numFiles) {
     DIR *dir;
     struct dirent *entry;
     char **fileList;
     int i;
- 
     *numFiles = 0;
     dir = opendir(dirName);
     if(dir == NULL) {
@@ -45,29 +41,34 @@ char **swListDirectory(const char *dirName, uint32_t *numFiles)
         }
         entry = readdir(dir);
     }
-    (void)closedir(dir);
+    if (closedir(dir)) {
+      return NULL;
+    }
     dir = opendir(dirName);
     if(dir == NULL) {
         return NULL;
     }
-    fileList = (char **)calloc(*numFiles, sizeof(char *));
+    fileList = swCalloc(*numFiles, sizeof(char *));
     for(i = 0; i < *numFiles; i++) {
         entry = readdir(dir);
         while(!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) {
             entry = readdir(dir);
         }
         fileList[i] = swCopyString(entry->d_name);
+        if (fileList[i] == NULL) {
+            return NULL;
+        }
     }
-    (void)closedir(dir);
+    if (closedir(dir)) {
+      return NULL;
+    }
     return fileList;
 }
 
 // This function, frees a voice list created with getVoices.
 void swFreeStringList(char **stringList, uint32_t numStrings)
 {
-    int i;
-
-    for(i = 0; i < numStrings; i++) {
+    for(int i = 0; i < numStrings; i++) {
         free(stringList[i]);
     }
     free(stringList);
@@ -76,13 +77,32 @@ void swFreeStringList(char **stringList, uint32_t numStrings)
 // Make a copy of a string list.
 char **swCopyStringList(const char **stringList, uint32_t numStrings)
 {
-    char **newList = (char **)calloc(numStrings, sizeof(char*));
-    int i;
-
-    for(i = 0; i < numStrings; i++) {
+    char **newList = swCalloc(numStrings, sizeof(char*));
+    for(int i = 0; i < numStrings; i++) {
         newList[i] = swCopyString(stringList[i]);
+        if (newList[i] == NULL) {
+          return NULL;
+        }
     }
     return newList;
+}
+
+// Create a formatted string.  Caller is responsible for freeing result.
+static char *sprintfArgList(const char *format, va_list ap) {
+    char buffer[1];
+    unsigned int numWouldBePrinted = vsnprintf(buffer, sizeof(buffer), format, ap);
+    char *returnBuffer = malloc(numWouldBePrinted);
+    vsprintf(returnBuffer, format, ap);
+    return returnBuffer;
+}
+
+// Create a formatted string.  Caller is responsible for freeing result.
+char *swSprintf(const char *format, ...) {
+    va_list ap;
+    va_start(ap, format);
+    char *returnBuffer = sprintfArgList(format, ap);
+    va_end(ap);
+    return returnBuffer;
 }
 
 // Read up to a newline or EOF.  Do not include the newline character.
@@ -90,6 +110,9 @@ char **swCopyStringList(const char **stringList, uint32_t numStrings)
 char *swReadLine(FILE *file) {
     uint32_t bufSize = 42;
     char *buf = calloc(bufSize, sizeof(char));
+    if (buf == NULL) {
+        return NULL;
+    }
     uint32_t pos = 0;
     int c = getc(file);
     while(c != EOF && c != '\n') {
@@ -97,6 +120,9 @@ char *swReadLine(FILE *file) {
             if(pos+1 == bufSize) {
                 bufSize <<= 1;
                 buf = realloc(buf, bufSize);
+                if (buf == NULL) {
+                    return NULL;
+                }
             }
             buf[pos++] = c;
         }
@@ -159,4 +185,29 @@ int swForkWithStdio(const char *exePath, FILE **fin, FILE **fout, ...) {
     *fout = fdopen(pipes[0][0], "r");
     *fin = fdopen(pipes[1][1], "w");
     return pid;
+}
+
+// Call calloc, and exit on failure with an error message to stderr.
+void *swCalloc(size_t numElements, size_t elementSize) {
+  void *mem = calloc(numElements, elementSize);
+  if (mem == NULL) {
+    fprintf(stderr, "Out of memory\n");
+    exit(1);
+  }
+  return mem;
+}
+
+// Call recalloc, and exit on failure with an error message to stderr.
+void *swRealloc(void *mem, size_t numElements, size_t elementSize) {
+  mem = realloc(mem, numElements*elementSize);
+  if (mem == NULL) {
+    fprintf(stderr, "Out of memory\n");
+    exit(1);
+  }
+  return mem;
+}
+
+// Free memory.
+void swFree(void *mem) {
+  free(mem);
 }

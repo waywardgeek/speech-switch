@@ -51,35 +51,28 @@ static void writeBool(swEngine engine, bool value) {
 // List available engines.
 char **swListEngines(char *enginesDirectory, uint32_t *numEngines) {
     char **engines = swListDirectory(enginesDirectory, numEngines);
-    uint32_t i;
-    // Trim off thw "sw_" prefix if present
-    for(i = 0; i < *numEngines; i++) {
-        if(strncmp(engines[i], "sw_", 3) == 0) {
-            char *p = engines[i];
-            char *q = p + 3;
-            while((*p++ = *q++));
-        }
-    }
     return engines;
 }
 
 // Create and initialize a new swEngine object, and connect to the speech engine.
-swEngine swStart(char *enginesDirectory, char *engineName, char *dataDirectory,
+swEngine swStart(const char *libDirectory, const char *engineName,
         swCallback callback, void *callbackContext) {
-    char *fileName = calloc(strlen(enginesDirectory) + strlen(engineName) + 5, 1);
-    sprintf(fileName, "%s/sw_%s", enginesDirectory, engineName);
-    if(!swFileReadable(fileName)) {
-        fprintf(stderr, "Unable to execute %s\n", fileName);
-        free(fileName);
+    char *enginesDir =  swSprintf("%s/%s", libDirectory, engineName);
+    char *engineExeName = swSprintf("%s/sw_%s", enginesDir, engineName);
+    if(!swFileReadable(engineExeName)) {
+        fprintf(stderr, "Unable to execute %s\n", engineExeName);
+        swFree(enginesDir);
+        swFree(engineExeName);
         return NULL;
     }
-    swEngine engine = calloc(1, sizeof(struct swEngineSt));
+    swEngine engine = swCalloc(1, sizeof(struct swEngineSt));
     engine->name = swCopyString(engineName);
     engine->callback = callback;
     engine->callbackContext = callbackContext;
-    engine->pid = swForkWithStdio(fileName, &engine->fin, &engine->fout,
-        dataDirectory, NULL);
-    free(fileName);
+    engine->pid = swForkWithStdio(engineExeName, &engine->fin, &engine->fout,
+        enginesDir, NULL);
+    swFree(engineExeName);
+    swFree(enginesDir);
     return engine;
 }
 
@@ -88,8 +81,8 @@ void swStop(swEngine engine) {
     writeServer(engine, "quit\n");
     fclose(engine->fin);
     fclose(engine->fout);
-    free(engine->name);
-    free(engine);
+    swFree(engine->name);
+    swFree(engine);
 }
 
 // TODO: reuse buffers rather than calloc each time.
@@ -135,13 +128,13 @@ static int16_t *readSpeechData(swEngine engine, uint32_t *numSamples) {
     if(!strcmp(line, "true")) {
         // We're done.
         *numSamples = 0;
-        free(line);
+        swFree(line);
         return NULL;
     }
     uint32_t bufSize  = strlen(line)/4;
-    int16_t *samples = calloc(bufSize, sizeof(int16_t));
+    int16_t *samples = swCalloc(bufSize, sizeof(int16_t));
     *numSamples = convertHexToInt16(samples, line);
-    free(line);
+    swFree(line);
     return samples;
 }
 
@@ -163,7 +156,7 @@ bool swSpeak(swEngine engine, char *text, bool isUTF8) {
     while(samples != NULL && !cancelled) {
         cancelled = engine->callback(engine, samples, numSamples, engine->cancel,
                 engine->callbackContext);
-        free(samples);
+        swFree(samples);
         writeBool(engine, !cancelled);
         samples = readSpeechData(engine, &numSamples);
     }
@@ -174,14 +167,14 @@ bool swSpeak(swEngine engine, char *text, bool isUTF8) {
 static uint32_t readUint32(swEngine engine) {
     char *line = swReadLine(engine->fout);
     uint32_t result = atoi(line);
-    free(line);
+    swFree(line);
     return result;
 }
 
 // Read a count-prefixed string list from the server.
 static char **readStringList(swEngine engine, uint32_t *numStrings) {
     *numStrings = readUint32(engine);
-    char **strings = calloc(*numStrings, sizeof(char *));
+    char **strings = swCalloc(*numStrings, sizeof(char *));
     uint32_t i;
     for(i = 0; i < *numStrings; i++) {
         strings[i] = swReadLine(engine->fout);
@@ -205,7 +198,7 @@ char **swListVoices(swEngine engine, uint32_t *numVoices) {
 static bool expectTrue(swEngine engine) {
     char *line = swReadLine(engine->fout);
     bool result = !strcmp(line, "true");
-    free(line);
+    swFree(line);
     return result;
 }
 
@@ -235,7 +228,7 @@ swEncoding swGetEncoding(swEngine engine) {
     if(!strcmp(line, "ANSI")) {
         encoding = SW_ANSI;
     }
-    free(line);
+    swFree(line);
     return encoding;
 }
 

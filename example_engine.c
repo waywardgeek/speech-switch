@@ -67,11 +67,11 @@ char **swGetVoices(uint32_t *numVoices)
     for(i = 0; espeakVoices[i] != NULL; i++) {
         (*numVoices)++;
     }
-    voices = (char **)calloc(*numVoices, sizeof(char *));
+    voices = (char **)swCalloc(*numVoices, sizeof(char *));
     for(i = 0; i < *numVoices; i++) {
         name = espeakVoices[i]->name;
         language = espeakVoices[i]->languages + 1;
-        voices[i] = (char *)calloc(strlen(name) + strlen(language) + 2, sizeof(char));
+        voices[i] = (char *)swCalloc(strlen(name) + strlen(language) + 2, sizeof(char));
         strcpy(voices[i], name);
         strcat(voices[i], ",");
         strcat(voices[i], language);

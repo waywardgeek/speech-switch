@@ -15,8 +15,6 @@
 #define MIN_PARAGRAPH 1024
 
 static char *swLibDir;
-static char *swEnginesDir;
-static char *swDataDir;
 
 static char *swText;
 static uint32_t swTextLen, swTextPos;
@@ -63,7 +61,7 @@ static void setDirectories(char *exeName) {
     } else {
         // Assume relative to the executable
         const char *relPath = "../lib/speechsw";
-        swLibDir = calloc(strlen(exeName) + strlen(relPath) + 2, sizeof(char));
+        swLibDir = swCalloc(strlen(exeName) + strlen(relPath) + 2, sizeof(char));
         strcpy(swLibDir, exeName);
         char *p = strrchr(swLibDir, '/');
         if (p != NULL) {
@@ -77,16 +75,6 @@ static void setDirectories(char *exeName) {
       fprintf(stderr, "Cannot find %s\n", swLibDir);
       exit(1);
     }
-    swEnginesDir = swCatStrings(swLibDir, "/engines");
-    if (access(swEnginesDir, R_OK)) {
-      fprintf(stderr, "Cannot find %s\n", swEnginesDir);
-      exit(1);
-    }
-    swDataDir = swCatStrings(swLibDir, "/data");
-    if (access(swDataDir, R_OK)) {
-      fprintf(stderr, "Cannot find %s\n", swDataDir);
-      exit(1);
-    }
 }
 
 // Add text to be spoken to the text buffer.
@@ -94,7 +82,7 @@ static void addText(char *p) {
     uint32_t len = strlen(p);
     if(swTextPos + len + 1 >= swTextLen) {
         swTextLen <<= 1;
-        swText = realloc(swText, swTextLen*sizeof(char));
+        swText = swRealloc(swText, swTextLen, sizeof(char));
     }
     strcat(swText + swTextPos, p);
     swTextPos += len;
@@ -161,7 +149,7 @@ static uint32_t adjustSamples(swContext context, int16_t *samples, uint32_t numS
     }
     if(newNumSamples > context->bufferSize) {
         context->bufferSize = newNumSamples << 1;
-        context->samples = realloc(context->samples, context->bufferSize*sizeof(int16_t));
+        context->samples = swRealloc(context->samples, context->bufferSize, sizeof(int16_t));
     }
     if(sonicReadShortFromStream(context->sonic, context->samples, newNumSamples) != newNumSamples) {
         fprintf(stderr, "Error reading from sonic stream\n");
@@ -198,7 +186,7 @@ static void speakText(char *waveFileName, char *text, char *textFileName, char *
     // Start the speech engine
     // TODO: deal with data directory
     struct swContextSt context = {0,};
-    swEngine engine = swStart(swEnginesDir, engineName, swDataDir, speechCallback, &context);
+    swEngine engine = swStart(swLibDir, engineName, speechCallback, &context);
     if(engine == NULL) {
         exit(1);
     }
@@ -238,7 +226,7 @@ static void speakText(char *waveFileName, char *text, char *textFileName, char *
         sonicSetSpeed(context.sonic, sonicSpeed);
         sonicSetPitch(context.sonic, sonicPitch);
         context.bufferSize = SONIC_BUFFER_SIZE;
-        context.samples = calloc(SONIC_BUFFER_SIZE, sizeof(int16_t));
+        context.samples = swCalloc(SONIC_BUFFER_SIZE, sizeof(int16_t));
     }
     // TODO: break this into paragraphs
     if(textFileName != NULL) {
@@ -264,7 +252,7 @@ static void speakText(char *waveFileName, char *text, char *textFileName, char *
             context.sonic = NULL;
             speechCallback(engine, context.samples, numSamples, false, &context);
         }
-        free(context.samples);
+        swFree(context.samples);
     }
     if(waveFileName != NULL) {
         swCloseWaveFile(context.outWaveFile);
@@ -282,7 +270,7 @@ int main(int argc, char *argv[]) {
     char *voiceName = NULL;
     swTextLen = 128;
     swTextPos = 0;
-    swText = calloc(swTextLen, sizeof(char));
+    swText = swCalloc(swTextLen, sizeof(char));
     setDirectories(argv[0]);
     bool useSonicSpeed = false;
     bool useSonicPitch = false;
@@ -301,10 +289,10 @@ int main(int argc, char *argv[]) {
             break;
         case 'l': {
             uint32_t numEngines;
-            char ** engines = swListEngines(swEnginesDir, &numEngines);
+            char ** engines = swListEngines(swLibDir, &numEngines);
             uint32_t i, j;
             for(i = 0; i < numEngines; i++) {
-                swEngine engine = swStart(swEnginesDir, engines[i], NULL, NULL, NULL);
+                swEngine engine = swStart(swLibDir, engines[i], NULL, NULL);
                 if(engine != NULL) {
                     printf("%s\n", engines[i]);
                     uint32_t numVoices;
