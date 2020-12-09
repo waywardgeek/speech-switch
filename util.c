@@ -88,19 +88,15 @@ char **swCopyStringList(const char **stringList, uint32_t numStrings)
 }
 
 // Create a formatted string.  Caller is responsible for freeing result.
-static char *sprintfArgList(const char *format, va_list ap) {
-    char buffer[1];
-    unsigned int numWouldBePrinted = vsnprintf(buffer, sizeof(buffer), format, ap);
-    char *returnBuffer = malloc(numWouldBePrinted);
-    vsprintf(returnBuffer, format, ap);
-    return returnBuffer;
-}
-
-// Create a formatted string.  Caller is responsible for freeing result.
 char *swSprintf(const char *format, ...) {
     va_list ap;
+    char buffer[1];
     va_start(ap, format);
-    char *returnBuffer = sprintfArgList(format, ap);
+    unsigned int numWouldBePrinted = vsnprintf(buffer, sizeof(buffer), format, ap);
+    va_end(ap);
+    char *returnBuffer = malloc(numWouldBePrinted);
+    va_start(ap, format);
+    vsprintf(returnBuffer, format, ap);
     va_end(ap);
     return returnBuffer;
 }
