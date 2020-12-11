@@ -502,7 +502,9 @@ static void execHelp(void)
         "set ssml [true|false] - Enable or disable ssml support\n"
         "speak          - Enter text on separate lines, ending with \".\" on a line by\n"
         "                 itself.  Synthesized samples will be generated in hexidecimal\n"
-        "get version    - Report the speech-switch protocol version, currently 1");
+        "get version    - Report the speech-switch protocol version, currently 1\n"
+        "get sonicpitch - Return \"true\" if speech pitch should be adjusted with Sonic.\n"
+        "get sonicspeed - Return \"true\" if speech speed should be adjusted with Sonic.\n");
 }
 
 // Execute the current command stored in 'line'.  If we read a close command, return false. 
@@ -529,6 +531,10 @@ static bool executeCommand(void)
             putClient("1");
         } else if(!strcasecmp(key, "encoding")) {
             putClient(useANSI? "ANSI" : "UTF-8");
+        } else if(!strcasecmp(key, "sonicpitch")) {
+            writeBool(swUseSonicPitch());
+        } else if(!strcasecmp(key, "sonicspeed")) {
+            writeBool(swUseSonicSpeed());
         } else {
             putClient("Unrecognized command");
         }

@@ -197,6 +197,16 @@ char **swGetVoices(uint32_t *numVoices)
     return voices;
 }
 
+// Let Sonice handle speed.
+bool swUseSonicSpeed(void) {
+  return false;
+}
+
+// Let Sonic handle pitch.
+bool swUseSonicPitch(void) {
+  return false;
+}
+
 // Find a language from it's name.
 static eciLocale findLocaleFromName(const char *name, bool *foundIt)
 {
@@ -257,7 +267,7 @@ bool swSetPitch(float pitch)
 }
 
 // Set the punctuation level, which will be PUNCT_NONE, PUNCT_SOME, PUNCT_MOST, or PUNCT_ALL.
-bool swSetPunctuationLevel(int level)
+bool swSetPunctuationLevel(swPunctLevel level)
 {
     return true; // No support for punctuation levels
 }

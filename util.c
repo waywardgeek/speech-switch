@@ -92,9 +92,9 @@ char *swSprintf(const char *format, ...) {
     va_list ap;
     char buffer[1];
     va_start(ap, format);
-    unsigned int numWouldBePrinted = vsnprintf(buffer, sizeof(buffer), format, ap);
+    unsigned int numWouldBePrinted = vsnprintf(buffer, sizeof(buffer), format, ap) + 1;
     va_end(ap);
-    char *returnBuffer = malloc(numWouldBePrinted);
+    char *returnBuffer = swCalloc(numWouldBePrinted, sizeof(char));
     va_start(ap, format);
     vsprintf(returnBuffer, format, ap);
     va_end(ap);

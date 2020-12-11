@@ -51,6 +51,14 @@ bool swSpeak(swEngine engine, const char *text, bool isUTF8);
 void swCancel(swEngine engine);
 // Returns true if swCancel has been called since the last call to swSpeak.
 bool swSpeechCanceled(swEngine engine);
+// Enable/disable using Sonic to set pitch.
+void swEnableSonicPitch(swEngine engine, bool enable);
+// Enable/disable using Sonic to set speed.
+void swEnableSonicSpeed(swEngine engine, bool enable);
+// Return true of Sonic is currently used to adjust pitch.
+bool swSonicUsedForPitch(swEngine engine);
+// Return true of Sonic is currently used to adjust speed.
+bool swSonicUsedForSpeed(swEngine engine);
 // Get the sample rate in Hertz.
 uint32_t swGetSampleRate(swEngine engine);
 // Get a list of supported voices.  The caller can call swFreeStringList to free

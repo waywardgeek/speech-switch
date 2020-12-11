@@ -103,6 +103,16 @@ char **swGetVoices(uint32_t *numVoices)
     return voices;
 }
 
+// Let Sonice handle speed.
+bool swUseSonicSpeed(void) {
+  return false;
+}
+
+// Let Sonic handle pitch.
+bool swUseSonicPitch(void) {
+  return false;
+}
+
 // Select a voice.
 bool swSetVoice(const char *voice)
 {
@@ -146,7 +156,7 @@ bool swSetPitch(float pitch)
 }
 
 // Set the punctuation leve, which will be PUNCT_NONE, PUNCT_SOME, or PUNCT_ALL.
-bool swSetPunctuationLevel(int level)
+bool swSetPunctuationLevel(swPunctLevel level)
 {
     int espeakLevel;
 

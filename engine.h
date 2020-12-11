@@ -21,11 +21,16 @@ uint32_t swGetSampleRate(void);
 // two entries, the voice name, and the language code.  For example, a voice
 // name could be "Joey" or "English", and the language code "en-uk".
 char **swGetVoices(uint32_t *numVoices);
+// If the TTS engine generally sounds better when sped up by Sonic, return true.
+bool swUseSonicSpeed(void);
+// If the TTS engine generally sounds better when pitch is adjusted by Sonic,
+// return true.
+bool swUseSonicPitch(void);
 // Select a voice.
 bool swSetVoice(const char *voice);
-// Set the speech speed.
+// Set the speech speed.  Not required if using Sonic for speed.
 bool swSetSpeed(float speed);
-// Set the pitch.
+// Set the pitch.  Not required if using Sonic for pitch.
 bool swSetPitch(float pitch);
 // Sarts synthesis of the text.  Block until all text is synthesized.
 bool swSpeakText(const char *text);
@@ -35,11 +40,13 @@ bool swSpeakText(const char *text);
 // Returns true to continue synthesis, false to cancel.
 bool swProcessAudio(const short *data, int numSamples);
 // Set the punctuation level for the engine.  By default, it should be set to none.
-#define PUNCT_NONE 0
-#define PUNCT_SOME 1
-#define PUNCT_MOST 2
-#define PUNCT_ALL 3
-bool swSetPunctuationLevel(int level);
+typedef enum {
+    PUNCT_NONE = 0,
+    PUNCT_SOME = 1,
+    PUNCT_MOST = 2,
+    PUNCT_ALL = 3
+} swPunctLevel;
+bool swSetPunctuationLevel(swPunctLevel level);
 // Enable or disable support for SSML.  By default, SSML support should be disabled.
 bool swSetSSML(bool value);
 // These two functions are only for voices that have "variants", which so far

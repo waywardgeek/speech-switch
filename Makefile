@@ -57,7 +57,7 @@ $(PICOTTS): pico_engine.c engine.c util.c engine.h
 
 bin/sw-say: sw-say.c speechsw.c ansi2ascii.c util.c wave.c engine.h speechsw.h
 	mkdir -p bin
-	gcc $(CFLAGS) -o bin/sw-say sw-say.c speechsw.c ansi2ascii.c util.c wave.c -lsonic -lm
+	gcc $(CFLAGS) -o bin/sw-say sw-say.c speechsw.c ansi2ascii.c util.c wave.c ../sonic/libsonic.a -lm
 
 clean:
 	rm -r bin lib

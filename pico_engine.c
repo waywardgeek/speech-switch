@@ -245,6 +245,16 @@ char **swGetVoices(uint32_t *numVoices)
     return voices;
 }
 
+// Let Sonice handle speed.
+bool swUseSonicSpeed(void) {
+  return true;
+}
+
+// Let Sonic handle pitch.
+bool swUseSonicPitch(void) {
+  return true;
+}
+
 // Select a voice.
 bool swSetVoice(const char *voice)
 {
@@ -266,7 +276,7 @@ bool swSetPitch(float pitch)
 
 // No punctuation level support is directly built into pico.  Let SH deal with
 // it.
-bool swSetPunctuationLevel(int level)
+bool swSetPunctuationLevel(swPunctLevel level)
 {
     return true;
 }
