@@ -194,6 +194,11 @@ bool swSpeakText(const char *text)
         espeakCHARS_UTF8 | ssmlFlag, NULL, NULL) == EE_OK;
 }
 
+// Speak the character, which is encoded in UTF-8.  Block until finished.
+bool swSpeakChar(uint32_t unicodeChar) {
+  return espeak_Char(unicodeChar) == EE_OK;
+}
+
 // List voice variants.  This is for formant synths, and is typically stuff
 // like MALE2, or CHILD1, though it can be anything.
 char **swGetVoiceVariants(uint32_t *numVariants)

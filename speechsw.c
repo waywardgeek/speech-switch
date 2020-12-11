@@ -226,18 +226,9 @@ static int16_t *readSpeechData(swEngine engine, uint32_t *numSamples) {
   return engine->samples;
 }
 
-// Synthesize speech samples.  Synthesized samples will be passed to the 
-// callback function passed to swStart.  To continue receiving samples, the
-// callback should return true.  Returning false will cancel further speech.
-bool swSpeak(swEngine engine, const char *text, bool isUTF8) {
-  // TODO: deal with isUTF8
-  // TODO: replace any \n. with \n..
-  engine->cancel = false;
-  fputs("speak\n", engine->fin);
-  fputs(text, engine->fin);
-  writeServer(engine, "\n.\n");
-  // TODO: deal with error handling
-  // Now we have to read data and send it to the callback until we read "true".
+
+// Process speech data from the synth engine untile cancelled or done.
+static bool processSpeechData(swEngine engine) {
   uint32_t numSamples;
   int16_t *samples = readSpeechData(engine, &numSamples);
   bool cancelled = false;
@@ -248,6 +239,29 @@ bool swSpeak(swEngine engine, const char *text, bool isUTF8) {
     samples = readSpeechData(engine, &numSamples);
   }
   return !cancelled;
+}
+
+// Synthesize speech samples.  Synthesized samples will be passed to the 
+// callback function passed to swStart.  To continue receiving samples, the
+// callback should return true.  Returning false will cancel further speech.
+bool swSpeak(swEngine engine, const char *text, bool isUTF8) {
+  // TODO: deal with isUTF8
+  // TODO: replace any \n. with \n..
+  engine->cancel = false;
+  fputs("speak\n", engine->fin);
+  fputs(text, engine->fin);
+  writeServer(engine, "\n.\n");
+  return processSpeechData(engine);
+}
+
+// Synthesize speech samples to speak a single character.  Synthesized samples
+// will be passed to the callback function passed to swStart.  To continue
+// receiving samples, the callback should return true.  Returning false will
+// cancel further speech.
+bool swSpeakChar(swEngine engine, const char *utf8Char) {
+  engine->cancel = false;
+  fprintf(engine->fin, "char %s\n", utf8Char);
+  return processSpeechData(engine);
 }
 
 // Read a count-prefixed string list from the server.

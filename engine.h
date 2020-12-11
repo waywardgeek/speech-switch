@@ -34,6 +34,8 @@ bool swSetSpeed(float speed);
 bool swSetPitch(float pitch);
 // Sarts synthesis of the text.  Block until all text is synthesized.
 bool swSpeakText(const char *text);
+// Speak a character name.
+bool swSpeakChar(uint32_t unicodeChar);
 // The engine needs to pass the synthesized samples back to the system to be
 // processed with this callback.  speakText should block until all samples are
 // synthesized.  Samples are in 16-bit signed notation, from -32767 to 32767.

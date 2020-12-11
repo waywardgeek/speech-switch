@@ -37,3 +37,17 @@ int swForkWithStdio(const char *exePath, FILE **fin, FILE **fout, ...);
 char *swConvertANSIToASCII(char c);
 // The returned word will be at most this long
 #define SW_MAX_WORD_SIZE 16
+
+// Return the length of the UTF-8 character pointed to by p.  Check that the
+// encoding seems valid. We do the full check as defined on Wikipedia because
+// so many applications, likely including commercial TTS engines, leave security
+// holes open through UTF-8 encoding attacks.  Return the 32-bit unicode value
+// in wchar.
+size_t swFindUTF8LengthAndValidate(const char *text, bool *valid, uint32_t *unicodeChar);
+// Encode a unicode character as UTF-8.  Returne the number of bytes.  If it is
+// too large to encode, return 0.  |out| should have space for at least 4 bytes.
+uint32_t swEncodeUTF8(uint32_t unicodeChar, char *out);
+// Convert a unicode character to ANSI.  Return 0 if it cannot be converted.
+uint8_t swUnicodeToAnsi(uint32_t unicodeChar);
+// Convert an ANSI character to unicode.
+uint32_t swAnsiToUnicodeUnicodeToAnsi(uint8_t ansiChar);
