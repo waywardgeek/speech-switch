@@ -48,7 +48,7 @@ bool swSpeak(swEngine engine, const char *text, bool isUTF8);
 // will be passed to the callback function passed to swStart.  To continue
 // receiving samples, the callback should return true.  Returning false will
 // cancel further speech.
-bool swSpeakChar(swEngine engine, const char *utf8Char);
+bool swSpeakChar(swEngine engine, const char *utf8Char, size_t bytes);
 
 // These fucntions control speech synthesis parameters.
 

@@ -212,14 +212,19 @@ void swFree(void *mem) {
 // encoding seems valid. We do the full check as defined on Wikipedia because
 // so many applications, likely including commercial TTS engines, leave security
 // holes open through UTF-8 encoding attacks.  Return the 32-bit unicode value
-// in wchar.
-size_t swFindUTF8LengthAndValidate(const char *text, bool *valid, uint32_t *unicodeChar) {
+// in unicodeChar, if it is non-NULL.
+size_t swFindUTF8LengthAndValidate(const char *text, size_t text_len,
+    bool *valid, uint32_t *unicodeChar) {
+  if (text_len == 0) {
+    return false;
+  }
   uint8_t c = (uint8_t)*text;
   *valid = true;
-  *unicodeChar = 0;
   if ((c & 0x80) == 0) {
     // It's ASCII 
-    *unicodeChar = c;
+    if (unicodeChar != NULL)  {
+      *unicodeChar = c;
+    }
     if (c < ' ') {
       // It's a control character - remove it. 
       *valid = false;
@@ -243,11 +248,17 @@ size_t swFindUTF8LengthAndValidate(const char *text, bool *valid, uint32_t *unic
     *valid = false;
   }
   size_t length = 1;
+  if (length >= text_len) {
+    return false;
+  }
   c = *++text;
   while((c & 0xc0) == 0x80) {
     unicodeCharacter = (unicodeCharacter << 6) | (c & 0x3f);
     bits += 6;
     length++;
+    if (length >= text_len) {
+      return false;
+    }
     c = *++text;
   }
   if (length != expectedLength || unicodeCharacter > 0x10ffff ||
@@ -261,6 +272,9 @@ size_t swFindUTF8LengthAndValidate(const char *text, bool *valid, uint32_t *unic
   if (unicodeCharacter >> (bits - 5) == 0) {
     *valid = false;
   }
+  if (unicodeChar != NULL) {
+    *unicodeChar = 0;
+   }
   *unicodeChar = unicodeCharacter;
   return length;
 }

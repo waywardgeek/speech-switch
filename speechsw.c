@@ -258,7 +258,10 @@ bool swSpeak(swEngine engine, const char *text, bool isUTF8) {
 // will be passed to the callback function passed to swStart.  To continue
 // receiving samples, the callback should return true.  Returning false will
 // cancel further speech.
-bool swSpeakChar(swEngine engine, const char *utf8Char) {
+bool swSpeakChar(swEngine engine, const char *utf8Char, size_t bytes) {
+  bool valid = false;
+  uint32_t unicodeChar;
+  swFindUTF8LengthAndValidate(utf8Char, bytes, &valid, &unicodeChar);
   engine->cancel = false;
   fprintf(engine->fin, "char %s\n", utf8Char);
   return processSpeechData(engine);

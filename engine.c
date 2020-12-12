@@ -21,6 +21,7 @@ printed.
 
 //#define DEBUG
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,14 +35,12 @@ printed.
 #define MAX_LINE_LENGTH (1 << 12)
 #define MAX_TEXT_LENGTH (1 << 16)
 
-typedef unsigned char uchar;
-
-static uchar line[MAX_LINE_LENGTH*2];
-static uchar word[MAX_LINE_LENGTH*2];
-static uchar *linePos;
-static uchar *speechBuffer;
+static uint8_t line[MAX_LINE_LENGTH*2];
+static uint8_t word[MAX_LINE_LENGTH*2];
+static uint8_t *linePos;
+static uint8_t *speechBuffer;
 static int speechBufferSize;
-static uchar *textBuffer;
+static uint8_t *textBuffer;
 static int textBufferSize;
 static bool useANSI = false;
 
@@ -98,77 +97,21 @@ void swSwitchToANSI(void) {
   useANSI = true;
 }
 
-// Return the length of the UTF-8 character pointed to by p.  Check that the
-// encoding seems valid. We do the full check as defined on Wikipedia because so
-// many applications, likely including commercial TTS engines, leave security
-// holes open through UTF-8 encoding attacks.  This routine has been extensively
-// tested by comparing it's response to that of iconv.  See checkutf8.c.
-static int findLengthAndValidate(uchar *p, bool *valid) {
-  int length, expectedLength, bits;
-  unsigned long unicodeCharacter;
-  uchar c = (uchar)*p;
-
-  *valid = true;
-  if((c & 0x80) == 0) {
-    // It's ASCII 
-    if(c < ' ') {
-      // It's a control character - remove it. 
-      *valid = false;
-    }
-    return 1;
-  }
-  c <<= 1;
-  expectedLength = 1;
-  while(c & 0x80) {
-    expectedLength++;
-    c <<= 1;
-  }
-  unicodeCharacter = c >> expectedLength;
-  bits = 7 - expectedLength;
-  if(expectedLength > 4 || expectedLength == 1) {
-    // No unicode values are coded for more than 4 bytes 
-    *valid = false;
-  }
-  if(expectedLength == 1 || (expectedLength == 2 && unicodeCharacter <= 1)) {
-    // We could have coded this as ASCII 
-    *valid = false;
-  }
-  length = 1;
-  c = *++p;
-  while((c & 0xc0) == 0x80) {
-    unicodeCharacter = (unicodeCharacter << 6) | (c & 0x3f);
-    bits += 6;
-    length++;
-    c = *++p;
-  }
-  if(length != expectedLength || unicodeCharacter > 0x10ffff ||
-    (unicodeCharacter >= 0xd800 && unicodeCharacter <= 0xdfff)) {
-    // Unicode only defines characters up to 0x10ffff, and excludes values
-    // 0xd800 through 0xdfff.
-    *valid = false;
-  }
-  // Check to see if we could have encoded the character in the next smaller
-  // number of bits, in which case it's invalid.
-  if(unicodeCharacter >> (bits - 5) == 0) {
-    *valid = false;
-  }
-  return length;
-}
-
 // Make sure that only valid UTF-8 characters are in the line, and that all
 // control characters are gone.
 static void validateLine(void) {
-  uchar *p = line;
-  uchar *q = line;
+  uint8_t *p = line;
+  uint8_t *q = line;
   int length;
   bool valid;
+  uint8_t *lineEnd = line + sizeof(line);
 
   while(*p != '\0') {
     if(useANSI) {
       length = 1;
       valid = *p >= ' ';
     } else {
-      length = findLengthAndValidate(p, &valid);
+      length = swFindUTF8LengthAndValidate((char*)p, lineEnd - p, &valid, NULL);
     }
     if(valid) {
       while(length--) {
@@ -252,8 +195,8 @@ static void writeBool(bool value) {
 // Just copy a word from the current line position to the word buffer and return
 // a pointer to it.  Return NULL if we are at the end.
 static char *readWord(void) {
-  uchar *w = word;
-  uchar c = *linePos;
+  uint8_t *w = word;
+  uint8_t c = *linePos;
 
   // Skip spaces.
   while(c == ' ') {
@@ -435,7 +378,7 @@ static bool readText(void) {
     length = strlen(lineBuf);
     if(textBufferSize < pos + length + 1) {
       textBufferSize = (pos + length) << 1;
-      textBuffer = (uchar *)swRealloc(textBuffer, textBufferSize, sizeof(uchar));
+      textBuffer = (uint8_t *)swRealloc(textBuffer, textBufferSize, sizeof(uint8_t));
     }
     strcpy((char *)textBuffer + pos, lineBuf);
     pos += length;
@@ -468,7 +411,8 @@ static bool execChar(void) {
   }
   bool valid = false;
   uint32_t unicodeChar; 
-  size_t length = swFindUTF8LengthAndValidate(charName, &valid, &unicodeChar);
+  uint8_t *lineEnd = line + sizeof(line);
+  size_t length = swFindUTF8LengthAndValidate(charName, lineEnd - linePos, &valid, &unicodeChar);
   if (charName[length] != '\0') {
     return false;
   }
@@ -572,7 +516,7 @@ static char *convertToHex(const short *data, int numSamples) {
 
   if(length > speechBufferSize) {
     speechBufferSize = length << 1;
-    speechBuffer = (uchar *)swRealloc(speechBuffer, speechBufferSize, sizeof(char));
+    speechBuffer = (uint8_t *)swRealloc(speechBuffer, speechBufferSize, sizeof(char));
   }
   p = (char *)speechBuffer;
   for(i = 0; i < numSamples; i++) {
@@ -632,9 +576,9 @@ int main(int argc, char **argv) {
     return 1;
   }
   speechBufferSize = 4096;
-  speechBuffer = (uchar *)swCalloc(speechBufferSize, sizeof(char));
+  speechBuffer = (uint8_t *)swCalloc(speechBufferSize, sizeof(char));
   textBufferSize = 4096;
-  textBuffer = (uchar *)swCalloc(textBufferSize, sizeof(char));
+  textBuffer = (uint8_t *)swCalloc(textBufferSize, sizeof(char));
   while(readLine() && executeCommand());
   swFree(textBuffer);
   swFree(speechBuffer);
