@@ -2,6 +2,7 @@
 CFLAGS=-Wall -g --std=c99 -D_POSIX_SOURCE
 #CC=gcc
 CC=gcc
+PREFIX=/usr/local
 
 ESPEAK=lib/speechsw/espeak/sw_espeak
 IBMTTS=lib/speechsw/ibmtts/sw_ibmtts
@@ -34,7 +35,7 @@ PICOTTS_DATA=../picotts/pico/lang
 
 ENGINES=$(ESPEAK) $(IBMTTS) $(PICOTTS) $(EXAMPLE)
 
-all: $(ENGINES) bin/sw-say
+all: $(ENGINES) bin/sw-say lib/libspeechsw.so
 
 $(EXAMPLE): engine.c example_engine.c util.c engine.h
 	$(CC) -O2 -I . -o $(EXAMPLE) example_engine.c engine.c util.c -lespeak
@@ -52,12 +53,29 @@ $(IBMTTS): engine.c ibmtts_engine.c util.c engine.h
 
 $(PICOTTS): pico_engine.c engine.c util.c engine.h
 	mkdir -p $(dir $(PICOTTS))
-	gcc $(CFLAGS) -o $(PICOTTS) pico_engine.c engine.c util.c $(PICOTTS_LIB) -lpopt -lm
+	$(CC) $(CFLAGS) -o $(PICOTTS) pico_engine.c engine.c util.c $(PICOTTS_LIB) -lpopt -lm
 	cp -r $(PICOTTS_DATA) $(dir $(PICOTTS))
 
-bin/sw-say: sw-say.c speechsw.c ansi2ascii.c util.c wave.c engine.h speechsw.h
+bin/sw-say: sw-say.c speechsw.c speechsw.h ansi2ascii.c util.c util.h wave.c wave.h
 	mkdir -p bin
-	gcc $(CFLAGS) -o bin/sw-say sw-say.c speechsw.c ansi2ascii.c util.c wave.c ../sonic/libsonic.a -lm
+	$(CC) $(CFLAGS) -o bin/sw-say sw-say.c speechsw.c ansi2ascii.c util.c wave.c ../sonic/libsonic.a -lm
+
+lib/libspeechsw.so: speechsw.c speechsw.h util.c util.h
+	mkdir -p lib
+	$(CC) -c -fpic $(CFLAGS) speechsw.c util.c
+	gcc -shared -o lib/libspeechsw.so speechsw.o util.o ../sonic/libsonic.a
+
+install: all
+	mkdir -p $(PREFIX)/lib
+	cp -r lib/speechsw $(PREFIX)/lib
+	install bin/sw-say $(PREFIX)/bin
+	mkdir -p $(PREFIX)/include/speechsw
+	cp util.h speechsw.h $(PREFIX)/include/speechsw
+	cp lib/libspeechsw.so $(PREFIX)/lib
+
+uninstall:
+	rm -rf $(PREFIX)/lib/speechsw
+	rm -f $(PREFIX)/bin/sw-say
 
 clean:
 	rm -r bin lib

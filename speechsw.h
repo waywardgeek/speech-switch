@@ -7,15 +7,15 @@
 #define SW_API_VERSION 1
 
 typedef enum {
-    SW_UTF8,
-    SW_ANSI
+  SW_UTF8,
+  SW_ANSI
 } swEncoding;
 
 typedef enum {
-    PUNCT_NONE=0,
-    PUNCT_SOME=1,
-    PUNCT_MOST=2,
-    PUNCT_ALL=3
+  SW_PUNCT_NONE = 0,
+  SW_PUNCT_SOME = 1,
+  SW_PUNCT_MOST = 2,
+  SW_PUNCT_ALL = 3
 } swPunctuationLevel;
 
 struct swEngineSt;
@@ -26,7 +26,7 @@ typedef unsigned char uchar;
 
 // If a speech callback returns false, it will terminate the current speech
 // synthesis operation.  If the user calls swCancel, then cancel will be set on
-// the next callback.  Cancelation means the speech buffers should be
+// the next callback.  Cancellation means the speech buffers should be
 // cleared/flushed as soon as possible.
 typedef bool (*swCallback)(swEngine engine, int16_t *samples, uint32_t numSamples,
     bool cancel, void *callbackContext);
@@ -50,7 +50,7 @@ bool swSpeak(swEngine engine, const char *text, bool isUTF8);
 // cancel further speech.
 bool swSpeakChar(swEngine engine, const char *utf8Char, size_t bytes);
 
-// These fucntions control speech synthesis parameters.
+// These functions control speech synthesis parameters.
 
 // Interrupt speech while being synthesized.
 void swCancel(swEngine engine);

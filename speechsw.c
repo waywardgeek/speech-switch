@@ -393,10 +393,10 @@ bool swSetVariant(swEngine engine, const char *variant) {
 bool swSetPunctuation(swEngine engine, swPunctuationLevel level) {
   char *levelName = NULL;
   switch(level) {
-  case PUNCT_NONE: levelName = "none"; break;
-  case PUNCT_SOME: levelName = "some"; break;
-  case PUNCT_MOST: levelName = "most"; break;
-  case PUNCT_ALL: levelName = "all"; break;
+  case SW_PUNCT_NONE: levelName = "none"; break;
+  case SW_PUNCT_SOME: levelName = "some"; break;
+  case SW_PUNCT_MOST: levelName = "most"; break;
+  case SW_PUNCT_ALL: levelName = "all"; break;
   default:
     fprintf(stderr, "Unknonwn punctuation level");
     exit(1);
