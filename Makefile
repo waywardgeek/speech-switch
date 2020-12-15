@@ -4,14 +4,14 @@ CFLAGS=-Wall -g --std=c99 -D_POSIX_SOURCE
 CC=gcc
 PREFIX=/usr/local
 
-ESPEAK=lib/speechsw/espeak/sw_espeak
-IBMTTS=lib/speechsw/ibmtts/sw_ibmtts
-PICOTTS=lib/speechsw/picotts/sw_picotts
+ESPEAK=libexec/speechsw/espeak/sw_espeak
+IBMTTS=libexec/speechsw/ibmtts/sw_ibmtts
+PICOTTS=libexec/speechsw/picotts/sw_picotts
 EXAMPLE=sw_example
 
 # You must manually build the supported speech synths on your system first.
 # Update these paths to reflect the insteallation on your system.  We do this so
-# that modules under lib/speechsw are binary-compatible across Linux distros.
+# that modules under libexec/speechsw are binary-compatible across Linux distros.
 
 # ESPEAK-NG
 # Source downloaded with 'git clone https://github.com/espeak-ng/espeak-ng.git'
@@ -67,15 +67,18 @@ lib/libspeechsw.so: speechsw.c speechsw.h util.c util.h
 
 install: all
 	mkdir -p $(PREFIX)/lib
-	cp -r lib/speechsw $(PREFIX)/lib
+	mkdir -p $(PREFIX)/libexec
+	cp -r libexec/speechsw $(PREFIX)/libexec
 	install bin/sw-say $(PREFIX)/bin
 	mkdir -p $(PREFIX)/include/speechsw
 	cp util.h speechsw.h $(PREFIX)/include/speechsw
 	cp lib/libspeechsw.so $(PREFIX)/lib
 
 uninstall:
-	rm -rf $(PREFIX)/lib/speechsw
+	rm -rf $(PREFIX)/libexec/speechsw
+	rm -rf $(PREFIX)/include/speechsw
+	rm -f $(PREFIX)/lib/libspeechsw.so
 	rm -f $(PREFIX)/bin/sw-say
 
 clean:
-	rm -r bin lib
+	rm -r bin lib libexec

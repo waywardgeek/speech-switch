@@ -51,14 +51,14 @@ static void usage(void) {
 static void setDirectories(char *exeName) {
   if (strchr(exeName, '/') == NULL) {
     // Assume it's installed in default location
-    const char *libDir = "/usr/lib/speechsw";
+    const char *libDir = "/usr/libexec/speechsw";
     if (access(libDir, R_OK)) {
-      libDir = "/usr/lib/speechsw";
+      libDir = "/usr/libexec/speechsw";
     }
     swLibDir = swCopyString(libDir);
   } else {
     // Assume relative to the executable
-    const char *relPath = "../lib/speechsw";
+    const char *relPath = "../libexec/speechsw";
     swLibDir = swCalloc(strlen(exeName) + strlen(relPath) + 2, sizeof(char));
     strcpy(swLibDir, exeName);
     char *p = strrchr(swLibDir, '/');
@@ -167,13 +167,11 @@ static void speakText(char *waveFileName, char *text, char *textFileName, char *
     // Play to speaker
     openDefaultSoundDevice(sampleRate, &context.outStream, &context.inStream);
   }
-  if (voice != NULL) {
-    swSetVoice(engine, voice);
+  if (voice != NULL && !  swSetVoice(engine, voice)) {
+    fprintf(stderr, "Could not set voice to %s\n", voice);
   }
-  if (variant != NULL) {
-    if (!swSetVariant(engine, variant)) {
-      fprintf(stderr, "Could not set voice variant to %s\n", variant);
-    }
+  if (variant != NULL && !swSetVariant(engine, variant)) {
+    fprintf(stderr, "Could not set voice variant to %s\n", variant);
   }
   if (useSonicSpeed) {
     swEnableSonicSpeed(engine, true);
