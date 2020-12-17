@@ -27,7 +27,8 @@ typedef unsigned char uchar;
 // If a speech callback returns false, it will terminate the current speech
 // synthesis operation.  If the user calls swCancel, then cancel will be set on
 // the next callback.  Cancellation means the speech buffers should be
-// cleared/flushed as soon as possible.
+// cleared/flushed as soon as possible.  This function is called with 0 samples
+// to indicate that speech synthesis is complete.
 typedef bool (*swCallback)(swEngine engine, int16_t *samples, uint32_t numSamples,
     bool cancel, void *callbackContext);
 
@@ -41,13 +42,12 @@ swEngine swStart(const char *libDirectory, const char *engineName,
 // Shut down the speech engine, and free the swEngine object.
 void swStop(swEngine engine);
 // Synthesize speech samples.  Synthesized samples will be passed to the 
-// callback function passed to swStart.  To continue receiving samples, the
-// callback should return true.  Returning false will cancel further speech.
+// callback function passed to swStart.  This function blocks until speech
+// synthesis is complete.
 bool swSpeak(swEngine engine, const char *text, bool isUTF8);
 // Synthesize speech samples to speak a single character.  Synthesized samples
-// will be passed to the callback function passed to swStart.  To continue
-// receiving samples, the callback should return true.  Returning false will
-// cancel further speech.
+// will be passed to the callback function passed to swStart.
+// This function blocks until speech synthesis is complete.
 bool swSpeakChar(swEngine engine, const char *utf8Char, size_t bytes);
 
 // These functions control speech synthesis parameters.

@@ -61,3 +61,6 @@ bool swSetVoiceVariant(const char *variant);
 // this function from their initializeEngine routine to switch to ANSI.  The
 // server will expect the client to use ANSI as well.
 void swSwitchToANSI(void);
+// Convert a factor that changes pitch or speed, to minRange .. maxRange.
+int swFactorToRange(float factor, float minFactor, float maxFactor, int minRange,
+    int defaultRange, int maxRange);

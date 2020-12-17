@@ -95,20 +95,17 @@ const char *swVariants[13] = {
 #define NUM_LANGUAGES (sizeof(swEciLocales)/sizeof(swEciLocales[0]) - 1)
 
 // Print an error message.
-static void error(void)
-{
+static void error(void) {
   char buf[200]; // Docs says it must be at least 100 long
-
   eciErrorMessage(swEciHandle, buf);
   printf("Error: %s\n", buf);
 }
 
 // Process data from the synth engine.  Just forward it to the audio processor.
 static enum ECICallbackReturn synthCallback(ECIHand eciHandle, enum ECIMessage msg,
-  long lparam, void* data)
-{
-  if(msg == eciWaveformBuffer) {
-    if(!swCancelled && !swProcessAudio(swBuffer, lparam)) {
+    long lparam, void* data) {
+  if (msg == eciWaveformBuffer) {
+    if (!swCancelled && !swProcessAudio(swBuffer, lparam)) {
       swCancelled = true; // eciStop does not seem to work when called from Windows, even on a separate thread.
       return eciDataAbort; // The docs say this cancels synthesis, but it doesn't
     }
@@ -117,20 +114,18 @@ static enum ECICallbackReturn synthCallback(ECIHand eciHandle, enum ECIMessage m
 }
 
 // Read the default speed and pitch parameters.
-static void setDefaultPitchAndSpeed(void)
-{
+static void setDefaultPitchAndSpeed(void) {
   swDefaultSpeed = eciGetVoiceParam(swEciHandle, 0, eciSpeed);
   swDefaultPitch = eciGetVoiceParam(swEciHandle, 0, eciPitchBaseline);
 }
 
 // Initialize the engine.
-bool swInitializeEngine(const char *synthdataPath)
-{
+bool swInitializeEngine(const char *synthdataPath) {
   // ibmtts Only supports ANSI.
   swSwitchToANSI();
   swCancelled = false;
   swEciHandle = eciNew();
-  if(swEciHandle == NULL_ECI_HAND) {
+  if (swEciHandle == NULL_ECI_HAND) {
     return false;
   }
   eciRegisterCallback(swEciHandle, synthCallback, NULL);
@@ -140,15 +135,13 @@ bool swInitializeEngine(const char *synthdataPath)
 }
 
 // Close the TTS Engine.
-bool swCloseEngine(void)
-{
+bool swCloseEngine(void) {
   eciDelete(swEciHandle);
   return true;
 }
 
 // Return the sample rate.
-uint32_t swGetSampleRate(void)
-{
+uint32_t swGetSampleRate(void) {
   switch(eciGetParam(swEciHandle, eciSampleRate)) {
   case 0: return 8000;
   case 1: return 11025;
@@ -158,12 +151,10 @@ uint32_t swGetSampleRate(void)
 }
 
 // Look through the table of locales to find the matching language entry.
-static eciLocale findLocaleFromID(enum ECILanguageDialect langID)
-{
+static eciLocale findLocaleFromID(enum ECILanguageDialect langID) {
   int i;
-
-  for(i = 0; i < NUM_LANGUAGES; i++) {
-    if(swEciLocales[i].langID == langID) {
+  for (i = 0; i < NUM_LANGUAGES; i++) {
+    if (swEciLocales[i].langID == langID) {
       return swEciLocales[i];
     }
   }
@@ -171,23 +162,21 @@ static eciLocale findLocaleFromID(enum ECILanguageDialect langID)
 }
 
 // Return an array of char pointers representing names of supported voices.
-char **swGetVoices(uint32_t *numVoices)
-{
+char **swGetVoices(uint32_t *numVoices) {
   enum ECILanguageDialect language[NUM_LANGUAGES];
   eciLocale locale;
   char **voices, *p;
   uint32_t i;
-
   // For some reason, the first call fails in MSVC
   *numVoices = NUM_LANGUAGES;
   eciGetAvailableLanguages(NULL, (int *)numVoices);
-  if(eciGetAvailableLanguages(language, (int *)numVoices) != 0) {
+  if (eciGetAvailableLanguages(language, (int *)numVoices) != 0) {
     error();
     *numVoices = 0;
     return NULL;
   }
   voices = (char **)swCalloc(*numVoices, sizeof(char *));
-  for(i = 0; i < *numVoices; i++) {
+  for (i = 0; i < *numVoices; i++) {
     locale = findLocaleFromID(language[i]);
     voices[i] = (char *)swCalloc(strlen(locale.name) + strlen(locale.lang) + strlen(locale.dialect) + 3,
       sizeof(char));
@@ -216,12 +205,10 @@ bool swUseSonicPitch(void) {
 }
 
 // Find a language from it's name.
-static eciLocale findLocaleFromName(const char *name, bool *foundIt)
-{
+static eciLocale findLocaleFromName(const char *name, bool *foundIt) {
   int i;
-
-  for(i = 0; i < NUM_LANGUAGES; i++) {
-    if(!strcasecmp(swEciLocales[i].name, name)) {
+  for (i = 0; i < NUM_LANGUAGES; i++) {
+    if (!strcasecmp(swEciLocales[i].name, name)) {
       *foundIt = true;
       return swEciLocales[i];
     }
@@ -231,66 +218,44 @@ static eciLocale findLocaleFromName(const char *name, bool *foundIt)
 }
 
 // Select a voice.
-bool swSetVoice(const char *voice)
-{
+bool swSetVoice(const char *voice) {
   bool foundIt;
   eciLocale locale = findLocaleFromName(voice, &foundIt);
-  if(!foundIt) {
+  if (!foundIt) {
     return false;
   }
   eciSetParam(swEciHandle, eciLanguageDialect, locale.langID);
   return true;
 }
 
-// Set the speech speed.  Speed is from -100.0 to 100.0, and 0 is the default.
-bool swSetSpeed(float speed)
-{
-  int ibmttsSpeed;
-  float minSpeed = 0.0f; // In words per minute
-  float maxSpeed = 150.0f;
-
-  if(speed >= 0.0f) {
-    ibmttsSpeed = (int)((swDefaultSpeed + speed*(maxSpeed - swDefaultSpeed)/100.0f) + 0.5f);
-  } else {
-    ibmttsSpeed = (int)((swDefaultSpeed + speed*(swDefaultSpeed - minSpeed)/100.0f) + 0.5f);
-  }
-  swCurrentSpeed = speed;
-  return eciSetVoiceParam(swEciHandle, 0, eciSpeed, ibmttsSpeed) != -1;
+// Set the speech speed.  Speed is from 1/6X to 6X, and 1.0 is the default.
+bool swSetSpeed(float speed) {
+  // speed is between 1/6 and 6.
+  swCurrentSpeed = swFactorToRange(speed, 1.0f/6.0f, 6.0f, 0, swDefaultSpeed, 250);
+  return eciSetVoiceParam(swEciHandle, 0, eciSpeed, swCurrentSpeed) != -1;
 }
 
 // Set the pitch.  0 means default, -100 is min pitch, and 100 is max pitch.
-bool swSetPitch(float pitch)
-{
-  float minPitch = 0.0f;
-  float maxPitch = 100.0f;
-  int newPitch;
-
-  if(pitch >= 0.0f) {
-    newPitch = (int)((swDefaultPitch + pitch*(maxPitch - swDefaultPitch)/100.0f) + 0.5f);
-  } else {
-    newPitch = (int)((swDefaultPitch + pitch*(swDefaultPitch - minPitch)/100.0f) + 0.5f);
-  }
-  swCurrentPitch = pitch;
-  return eciSetVoiceParam(swEciHandle, 0, eciPitchBaseline, newPitch) != -1;
+bool swSetPitch(float pitch) {
+  // pitch is between 1/3 and 3.
+  swCurrentPitch = swFactorToRange(pitch, 1.0f/3.0f, 3.0f, 0, swDefaultPitch, 100);
+  return eciSetVoiceParam(swEciHandle, 0, eciPitchBaseline, swCurrentPitch) != -1;
 }
 
 // Set the punctuation level, which will be PUNCT_NONE, PUNCT_SOME, PUNCT_MOST, or PUNCT_ALL.
-bool swSetPunctuationLevel(swPunctLevel level)
-{
+bool swSetPunctuationLevel(swPunctLevel level) {
   return true; // No support for punctuation levels
 }
 
 // Enable or disable SSML support.
-bool swSetSSML(bool value)
-{
+bool swSetSSML(bool value) {
   return true; // No support for SSML
 }
 
 // Speak the text.  For some reason, we have to call etiSynchronize here, making
 // it impossible to process audio output while synthesizing in small blocks, or
 // to abort.
-bool swSpeakText(const char *text)
-{
+bool swSpeakText(const char *text) {
   swCancelled = false;
   eciAddText(swEciHandle, text);
   eciSynthesize(swEciHandle);
@@ -317,26 +282,23 @@ bool swSpeakChar(uint32_t unicodeChar) {
 
 // List voice variants.  This is for formant synths, and is typically stuff
 // like MALE2, or CHILD1, though it can be anything.
-char **swGetVoiceVariants(uint32_t *numVariants)
-{
+char **swGetVoiceVariants(uint32_t *numVariants) {
   *numVariants = ECI_PRESET_VOICES + 1;
   return swCopyStringList(swVariants, ECI_PRESET_VOICES + 1);
 }
 
 // Select a voice variant.
-bool swSetVoiceVariant(const char *variant)
-{
+bool swSetVoiceVariant(const char *variant) {
   int i;
   bool result;
-
-  for(i = 0; i < ECI_PRESET_VOICES + 1; i++) {
-    if(!strcasecmp(variant, swVariants[i])) {
-      if(i == 0) {
+  for (i = 0; i < ECI_PRESET_VOICES + 1; i++) {
+    if (!strcasecmp(variant, swVariants[i])) {
+      if (i == 0) {
         result = eciCopyVoice(swEciHandle, 1, 0); // Set default voice, which is 1
       } else {
         result = eciCopyVoice(swEciHandle, i, 0);
       }
-      if(result) {
+      if (result) {
         // Ibmtts resets speed and pitch to default when setting a voice variant.
         setDefaultPitchAndSpeed();
         swSetPitch(swCurrentPitch);

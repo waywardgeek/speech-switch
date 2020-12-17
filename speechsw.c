@@ -184,11 +184,7 @@ static uint32_t convertHexToInt16(int16_t *samples, char *line) {
 // Run sonic to adjust speed and/or pitch
 static void adjustSamples(swEngine engine, uint32_t *numSamples) {
   sonicStream sonic = engine->sonic;
-  if (*numSamples == 0) {
-    sonicFlushStream(sonic);
-  } else {
-    sonicWriteShortToStream(sonic, engine->samples, *numSamples);
-  }
+  sonicWriteShortToStream(sonic, engine->samples, *numSamples);
   *numSamples = sonicSamplesAvailable(sonic);
   if (*numSamples == 0) {
     return;
@@ -203,21 +199,42 @@ static void adjustSamples(swEngine engine, uint32_t *numSamples) {
   }
 }
 
-// Read speech data in hexidecimal from the server until "true" is read.
-// Caller must free the samples.
-static int16_t *readSpeechData(swEngine engine, uint32_t *numSamples) {
-  char *line = swReadLine(engine->fout);
-  if(!strcmp(line, "true")) {
-    // We're done.
-    *numSamples = 0;
-    swFree(line);
-    return NULL;
-  }
-  uint32_t bufSize  = strlen(line)/4;
+// Grow the engine's sample buffer to at least bufSize.
+static void growSampleBuffer(swEngine engine, uint32_t bufSize) {
   if (engine->sampleBufferSize < bufSize) {
     engine->sampleBufferSize = bufSize << 2;
     engine->samples = swRealloc(engine->samples, engine->sampleBufferSize, sizeof(char));
   }
+}
+
+// Read speech data in hexidecimal from the server until "true" is read.
+// Caller must free the samples.
+static int16_t *readSpeechData(swEngine engine, uint32_t *numSamples) {
+  static bool ending = false;  // Used to return flushed samples from Sonic when ending.
+  if (ending) {
+    ending = false;
+    *numSamples = 0;
+    return NULL;
+  }
+  char *line = swReadLine(engine->fout);
+  if(!strcmp(line, "true")) {
+    swFree(line);
+    if (engine->sonic != NULL) {
+      // If using Sonic, we're almost, but not quite done.
+      sonicFlushStream(engine->sonic);
+      *numSamples = sonicSamplesAvailable(engine->sonic);
+      if (*numSamples != 0) {
+        growSampleBuffer(engine, *numSamples);
+        ending = true;
+        return engine->samples;
+      }
+    }
+    // We're done.
+    *numSamples = 0;
+    return NULL;
+  }
+  uint32_t bufSize  = strlen(line)/4;
+  growSampleBuffer(engine, bufSize);
   *numSamples = convertHexToInt16(engine->samples, line);
   swFree(line);
   if (engine->sonic != NULL) {
@@ -233,17 +250,21 @@ static bool processSpeechData(swEngine engine) {
   int16_t *samples = readSpeechData(engine, &numSamples);
   bool cancelled = false;
   while(samples != NULL && !cancelled) {
-    cancelled = engine->callback(engine, samples, numSamples, engine->cancel,
-        engine->callbackContext);
+    if (numSamples != 0) {
+      cancelled = engine->callback(engine, samples, numSamples, engine->cancel,
+          engine->callbackContext);
+    }
     writeBool(engine, !cancelled);
     samples = readSpeechData(engine, &numSamples);
   }
+  // We're done, so signal end of synthesis by sending 0 samples.
+  cancelled = engine->callback(engine, samples, 0, engine->cancel, engine->callbackContext);
   return !cancelled;
 }
 
 // Synthesize speech samples.  Synthesized samples will be passed to the 
-// callback function passed to swStart.  To continue receiving samples, the
-// callback should return true.  Returning false will cancel further speech.
+// callback function passed to swStart.  This function blocks until speech
+// synthesis is complete.
 bool swSpeak(swEngine engine, const char *text, bool isUTF8) {
   // TODO: deal with isUTF8
   // TODO: replace any \n. with \n..
@@ -255,9 +276,8 @@ bool swSpeak(swEngine engine, const char *text, bool isUTF8) {
 }
 
 // Synthesize speech samples to speak a single character.  Synthesized samples
-// will be passed to the callback function passed to swStart.  To continue
-// receiving samples, the callback should return true.  Returning false will
-// cancel further speech.
+// will be passed to the callback function passed to swStart.  This function
+// blocks until speech synthesis is complete.
 bool swSpeakChar(swEngine engine, const char *utf8Char, size_t bytes) {
   bool valid = false;
   uint32_t unicodeChar;

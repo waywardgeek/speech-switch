@@ -19,7 +19,7 @@ printed.
 
 */
 
-//#define DEBUG
+#define DEBUG
 
 #include <stdint.h>
 #include <stdio.h>
@@ -48,15 +48,6 @@ static bool useANSI = false;
 
 #include <sys/time.h>
 
-// Subtract two time values.
-static int timeDiff(int start, int stop) {
-  // Perform the carry for the later subtraction by updating y.
-  if(start <= stop) {
-    return stop - start;
-  }
-  return 1000000 + stop - start;
-}
-
 // Get the time in microseconds.
 static int getTime(void) {
   struct timeval t;
@@ -69,13 +60,11 @@ static int getTime(void) {
 static void LOG(char *format, ...) {
   char buffer[MAX_TEXT_LENGTH];
   va_list ap;
-  FILE *file;
-
   va_start(ap, format);
   vsnprintf(buffer, MAX_TEXT_LENGTH - 1, (char *)format, ap);
   va_end(ap);
   buffer[MAX_TEXT_LENGTH - 1] = '\0';
-  file = fopen("/tmp/server.log", "a");
+  FILE *file = fopen("/tmp/server.log", "a");
   fprintf(file, "%6d: %s", getTime(), buffer);
   fclose(file);
 }
@@ -83,8 +72,6 @@ static void LOG(char *format, ...) {
 #else
 
 void LOG(char *format, ...) {}
-//static int timeDiff(int start, int stop) {return 0;}
-//static int getTime(void) {return 0;}
 
 #endif
 
@@ -97,6 +84,23 @@ void swSwitchToANSI(void) {
   useANSI = true;
 }
 
+// Convert a factor that changes pitch or speed, to minRange .. maxRange.
+int swFactorToRange(float factor, float minFactor, float maxFactor, int minRange,
+    int defaultRange, int maxRange) {
+  if (factor > maxFactor) {
+    factor = maxFactor;
+  }
+  if (factor < minFactor) {
+    factor = minFactor;
+  }
+  if (factor >= 1.0f) {
+    return defaultRange + (int)((maxRange - defaultRange)*
+        ((factor - 1.0f)/(maxFactor - 1.0f)) + 0.5f);
+  }
+  return defaultRange - (int)((defaultRange - minRange)*
+      (1.0f/factor - 1.0f)/(1.0f/minFactor - 1.0f) + 0.5f);
+}
+    
 // Make sure that only valid UTF-8 characters are in the line, and that all
 // control characters are gone.
 static void validateLine(void) {
@@ -159,12 +163,11 @@ static bool readLine(void) {
 static void writeClient(char *format, ...) {
   va_list ap;
   char buf[MAX_TEXT_LENGTH];
-
   va_start(ap, format);
   vsnprintf(buf, MAX_TEXT_LENGTH - 1, format, ap);
   va_end(ap);
   buf[MAX_TEXT_LENGTH - 1] = '\0';
-  LOG("Wrote %s", buf);
+  LOG("Wrote %s\n", buf);
   puts(buf);
   fflush(stdout);
 }
@@ -534,7 +537,6 @@ static char *convertToHex(const short *data, int numSamples) {
 // Send audio samples in hex to the client.  Return false if the client cancelled. 
 bool swProcessAudio(const short *data, int numSamples) {
   char *hexBuf = convertToHex(data, numSamples);
-
   putClient(hexBuf);
   if(!readLine()) {
     LOG("Unable to read from client\n");
