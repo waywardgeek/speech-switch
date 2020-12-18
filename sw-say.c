@@ -51,8 +51,8 @@ static void usage(void) {
 static void setDirectories(char *exeName) {
   if (strchr(exeName, '/') == NULL) {
     // Assume it's installed in default location
-    const char *libDir = "/usr/libexec/speechsw";
-    if (access(libDir, R_OK)) {
+    const char *libDir = "/usr/local/libexec/speechsw";
+    if (!swFileReadable(libDir)) {
       libDir = "/usr/libexec/speechsw";
     }
     swLibDir = swCopyString(libDir);
@@ -69,7 +69,7 @@ static void setDirectories(char *exeName) {
     }
     strcpy(p, relPath);
   }
-  if (access(swLibDir, R_OK)) {
+  if (!swFileReadable(swLibDir)) {
     fprintf(stderr, "Cannot find %s\n", swLibDir);
     exit(1);
   }
