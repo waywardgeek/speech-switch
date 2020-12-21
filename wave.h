@@ -9,8 +9,8 @@
 
 typedef struct swWaveFileStruct *swWaveFile;
 
-swWaveFile swOpenInputWaveFile(char *fileName, int *sampleRate, int *numChannels);
-swWaveFile swOpenOutputWaveFile(char *fileName, int sampleRate, int numChannels);
+swWaveFile swOpenInputWaveFile(const char *fileName, int *sampleRate, int *numChannels);
+swWaveFile swOpenOutputWaveFile(const char *fileName, int sampleRate, int numChannels);
 int swCloseWaveFile(swWaveFile file);
 int swReadFromWaveFile(swWaveFile file, short *buffer, int maxSamples);
-int swWriteToWaveFile(swWaveFile file, short *buffer, int numSamples);
+int swWriteToWaveFile(swWaveFile file, const short *buffer, int numSamples);

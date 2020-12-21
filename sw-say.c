@@ -33,6 +33,7 @@ static void usage(void) {
     "Supported flags are:\n"
     "\n"
     "-a       -- Convert text to ASCI before being spoken.\n"
+    "-c       -- Read the text character by character.\n"
     "-e engine    -- Name of supported engine, like espeak picotts or ibmtts.\n"
     "-f textFile  -- Text file to be spoken.\n"
     "-l       -- List engines.\n"
@@ -149,10 +150,38 @@ static bool speechCallback(swEngine engine, int16_t *samples, uint32_t numSample
   return cancelled;
 }
 
+// Speak the text, either normally, or character-by-character if speakChar is set.
+static void speak(swEngine engine, const char *text, bool speakChar) {
+  if (!speakChar) {
+    swSpeak(engine, text, true);
+  } else {
+    size_t textLen = strlen(text);
+    while (textLen != 0) {
+      bool valid = false;
+      uint32_t unicodeChar;
+      size_t charLen = swFindUTF8LengthAndValidate(text, textLen, &valid, &unicodeChar);
+      if (!valid) {
+        fprintf(stderr, "Invalid UTF-8 char %s\n", text);
+        exit(1);
+      }
+      if (charLen > SW_MAX_UTF8_CHAR_LEN) {
+        fprintf(stderr, "Internal error in swFindUTF8Length\n");
+        exit(1);
+      }
+      char buf[SW_MAX_UTF8_CHAR_LEN + 1];
+      memcpy(buf, text, charLen);
+      buf[charLen] = '\0';
+      swSpeakChar(engine, buf, charLen);
+      text += charLen;
+      textLen -= charLen;
+    }
+  }
+}
+
 // Speak the text.  Do this in a stream oriented way.
-static void speakText(char *waveFileName, char *text, char *textFileName, char *engineName,
-    char *voice, char *variant, float speed, float pitch, bool useSonicSpeed,
-    bool useSonicPitch) {
+static void speakText(const char *waveFileName, char *text, const char *textFileName,
+    const char *engineName, const char *voice, const char *variant, float speed,
+    float pitch, bool useSonicSpeed, bool useSonicPitch, bool speakChar) {
   // Start the speech engine
   struct swContextSt context = {0,};
   swEngine engine = swStart(swLibDir, engineName, speechCallback, &context);
@@ -195,11 +224,11 @@ static void speakText(char *waveFileName, char *text, char *textFileName, char *
     char *paragraph = readParagraph(file);
     while(paragraph != NULL) {
       // TODO: deal with character encoding
-      swSpeak(engine, paragraph, true);
+      speak(engine, paragraph, speakChar);
       paragraph = readParagraph(file);
     }
   } else {
-    swSpeak(engine, text, true);
+    speak(engine, text, speakChar);
   }
   if (waveFileName != NULL) {
     swCloseWaveFile(context.outWaveFile);
@@ -226,11 +255,15 @@ int main(int argc, char *argv[]) {
   bool useSonicSpeed = false;
   bool useSonicPitch = false;
   swConvertToASCII = false;
+  bool speakChar = false;
   int opt;
-  while ((opt = getopt(argc, argv, "ae:f:lLnp:Ps:Sv:V:w:")) != -1) {
+  while ((opt = getopt(argc, argv, "ace:f:lLnp:Ps:Sv:V:w:")) != -1) {
     switch (opt) {
     case 'a':
       swConvertToASCII = true;
+      break;
+    case 'c':
+      speakChar = true;
       break;
     case 'e':
       engineName = optarg;
@@ -325,7 +358,7 @@ int main(int argc, char *argv[]) {
     addText("Hello, World!");
   }
   speakText(waveFileName, swText, textFileName, engineName, voiceName, voiceVariant, speed,
-      pitch, useSonicSpeed, useSonicPitch);
+      pitch, useSonicSpeed, useSonicPitch,speakChar);
   swFree(swLibDir);
   swFree(swText);
   return 0;

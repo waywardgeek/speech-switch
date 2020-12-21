@@ -2,6 +2,22 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#define SW_DEBUG 1
+
+#ifdef SW_DEBUG
+// Write a formatted string to the log file.
+void swLog(const char *format, ...);
+// Call at program initialization to set the name of the log file.
+void swSetLogFileName(const char *logFileName);
+#else
+static inline void swLog(const char *format, ...) {}
+static inline void swSetLogFileName(const char *logFileName) {}
+#endif
+
+void swUtilStart(void);
+// 
+void swUtilStop(void);
+
 // These utilities are provided simply to aid portability.
 char **swListDirectory(const char *dirName, uint32_t *numFiles);
 // Determine if the file exists and is readable.
@@ -38,12 +54,14 @@ char *swConvertANSIToASCII(char c);
 // The returned word will be at most this long
 #define SW_MAX_WORD_SIZE 16
 
+// No character takes more than 4 bytes to encode as UTF-8.
+#define SW_MAX_UTF8_CHAR_LEN 4
 // Return the length of the UTF-8 character pointed to by p.  Check that the
 // encoding seems valid. We do the full check as defined on Wikipedia because
 // so many applications, likely including commercial TTS engines, leave security
 // holes open through UTF-8 encoding attacks.  Return the 32-bit unicode value
 // in unicodeChar, if it is non-NULL.
-size_t swFindUTF8LengthAndValidate(const char *text, size_t text_len,
+size_t swFindUTF8LengthAndValidate(const char *text, size_t textLen,
     bool *valid, uint32_t *unicodeChar);
 // Encode a unicode character as UTF-8.  Returne the number of bytes.  If it is
 // too large to encode, return 0.  |out| should have space for at least 4 bytes.

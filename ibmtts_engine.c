@@ -1,6 +1,5 @@
 // SpeechSwitch interface to the IBM TTS engine.
 
-#include <stdio.h> // Only for debugging
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
@@ -230,8 +229,9 @@ bool swSetVoice(const char *voice) {
 
 // Set the speech speed.  Speed is from 1/6X to 6X, and 1.0 is the default.
 bool swSetSpeed(float speed) {
-  // speed is between 1/6 and 6.
-  swCurrentSpeed = swFactorToRange(speed, 1.0f/6.0f, 6.0f, 0, swDefaultSpeed, 250);
+  // speed is between 1/6 and 6.  Integer range is 0 to 250, but speed is
+  // normally limited to 150 or so.
+  swCurrentSpeed = swFactorToRange(speed, 1.0f/6.0f, 6.0f, 0, swDefaultSpeed, 170);
   return eciSetVoiceParam(swEciHandle, 0, eciSpeed, swCurrentSpeed) != -1;
 }
 

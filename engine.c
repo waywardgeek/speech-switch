@@ -19,8 +19,6 @@ printed.
 
 */
 
-#define DEBUG
-
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,41 +41,6 @@ static int speechBufferSize;
 static uint8_t *textBuffer;
 static int textBufferSize;
 static bool useANSI = false;
-
-#ifdef DEBUG
-
-#include <sys/time.h>
-
-// Get the time in microseconds.
-static int getTime(void) {
-  struct timeval t;
-
-  gettimeofday(&t, NULL);
-  return t.tv_usec;
-}
-
-// Just used for debugging
-static void LOG(char *format, ...) {
-  char buffer[MAX_TEXT_LENGTH];
-  va_list ap;
-  va_start(ap, format);
-  vsnprintf(buffer, MAX_TEXT_LENGTH - 1, (char *)format, ap);
-  va_end(ap);
-  buffer[MAX_TEXT_LENGTH - 1] = '\0';
-  FILE *file = fopen("/tmp/server.log", "a");
-  fprintf(file, "%6d: %s", getTime(), buffer);
-  fclose(file);
-}
-
-#else
-
-void LOG(char *format, ...) {}
-
-#endif
-
-#ifdef WIN32
-#define strcasecmp stricmp
-#endif
 
 // Switch to ANSI rather than UTF-8.
 void swSwitchToANSI(void) {
@@ -155,7 +118,7 @@ static bool readLine(void) {
     }
     validateLine();
   } while(*line == '\0');
-  LOG("Read %s\n", line);
+  swLog("Read %s\n", line);
   return true;
 }
 
@@ -167,14 +130,14 @@ static void writeClient(char *format, ...) {
   vsnprintf(buf, MAX_TEXT_LENGTH - 1, format, ap);
   va_end(ap);
   buf[MAX_TEXT_LENGTH - 1] = '\0';
-  LOG("Wrote %s\n", buf);
+  swLog("Wrote %s\n", buf);
   puts(buf);
   fflush(stdout);
 }
 
 // Write a string to the client.
 static void putClient(char *string) {
-  LOG("Wrote %s", string);
+  swLog("Wrote %s\n", string);
   puts(string);
   fflush(stdout);
 }
@@ -393,11 +356,11 @@ static bool readText(void) {
 // unless processAudio fails to read "true" from the client after sending speech
 // samples. */
 static bool execSpeak(void) {
-  LOG("entering execSpeak\n");
+  swLog("entering execSpeak\n");
   if(!readText()) {
     return false;
   }
-  LOG("Starting speakText: %s\n", textBuffer);
+  swLog("Starting speakText: %s\n", textBuffer);
   writeBool(swSpeakText((char *)textBuffer));
   return true;
 }
@@ -406,7 +369,7 @@ static bool execSpeak(void) {
 // has been synthesized, unless processAudio fails to read "true" from the
 // client after sending speech samples.
 static bool execChar(void) {
-  LOG("entering execChar\n");
+  swLog("entering execChar\n");
   validateLine();  // Make sure it is valid UTF-8.
   char *charName = (char *)linePos;
   while(*charName == ' ') {
@@ -450,8 +413,7 @@ static void execHelp(void) {
 // Execute the current command stored in 'line'.  If we read a close command, return false. 
 static bool executeCommand(void) {
   char *command, *key;
-
-  LOG("Executing %s\n", line);
+  swLog("Executing %s\n", line);
   linePos = line;
   command = readWord();
   if(command == NULL) {
@@ -539,11 +501,11 @@ bool swProcessAudio(const short *data, int numSamples) {
   char *hexBuf = convertToHex(data, numSamples);
   putClient(hexBuf);
   if(!readLine()) {
-    LOG("Unable to read from client\n");
+    swLog("Unable to read from client\n");
     return false;
   }
   if(strcasecmp((char *)line, "true")) {
-    LOG("Cancelled\n");
+    swLog("Cancelled\n");
     return false;
   }
   return true;
@@ -553,22 +515,13 @@ bool swProcessAudio(const short *data, int numSamples) {
 // engine may find it's speech data.
 int main(int argc, char **argv) {
   char *synthDataDir = NULL;
-
   if(argc == 2) {
     synthDataDir = argv[1];
-#ifdef CYGWIN
-    // Cygwin hack: cywin basically complains to death if you don't do this.
-    // Basically, we have to remove the drive letter and replace with /cygwin.
-    if(strlen(synthDataDir) > 2 && synthDataDir[1] == ':') {
-      char *buf = swCalloc(strlen(synthDataDir) + 10, sizeof(char));
-      sprintf(buf, "/cygdrive/%c%s", synthDataDir[0], synthDataDir + 2);
-      synthDataDir = buf;
-    }
-#endif
   } else if(argc != 1) {
     printf("Usage: %s [data_directory]\n", argv[0]);
     return 1;
   }
+  swSetLogFileName("/tmp/speechsw_engine.log");
   if(!swInitializeEngine(synthDataDir)) {
     if(argc == 2) {
       printf("Unable to initialize the TTS engine with data directory %s.\n", argv[1]);

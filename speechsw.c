@@ -34,28 +34,31 @@ struct swEngineSt {
 };
 
 // Write a formatted string to the server.
-static void writeServer(
-  swEngine engine,
-  char *format,
-  ...)
-{
+static void serverPrintf(swEngine engine, const char *format, ...) {
   va_list ap;
   char buf[MAX_TEXT_LENGTH];
-
   va_start(ap, format);
   vsnprintf(buf, MAX_TEXT_LENGTH - 1, format, ap);
   va_end(ap);
   buf[MAX_TEXT_LENGTH - 1] = '\0';
+  swLog("Writing %s to engine\n", buf);
   fputs(buf, engine->fin);
+  fflush(engine->fin);
+}
+
+// Write a string to the server, without adding a newline.
+static void serverPuts(swEngine engine, const char *text) {
+  swLog("Writing %s to engine\n", text);
+  fputs(text, engine->fin);
   fflush(engine->fin);
 }
 
 // Write "true\n" or "false\n" to the server.
 static void writeBool(swEngine engine, bool value) {
   if(value) {
-    writeServer(engine, "true\n");
+    serverPrintf(engine, "true\n");
   } else {
-    writeServer(engine, "false\n");
+    serverPrintf(engine, "false\n");
 
   }
 }
@@ -123,11 +126,11 @@ swEngine swStart(const char *libDirectory, const char *engineName,
     enginesDir, NULL);
   swFree(engineExeName);
   swFree(enginesDir);
-  writeServer(engine, "get sonicpitch\n");
+  serverPrintf(engine, "get sonicpitch\n");
   engine->useSonicPitch = expectTrue(engine);
-  writeServer(engine, "get sonicspeed\n");
+  serverPrintf(engine, "get sonicspeed\n");
   engine->useSonicSpeed = expectTrue(engine);
-  writeServer(engine, "get samplerate\n");
+  serverPrintf(engine, "get samplerate\n");
   engine->sampleRate = readUint32(engine);
   if (engine->useSonicSpeed || engine->useSonicPitch) {
     startSonic(engine);
@@ -137,7 +140,7 @@ swEngine swStart(const char *libDirectory, const char *engineName,
 
 // Shut down the speech engine, and free the swEngine object.
 void swStop(swEngine engine) {
-  writeServer(engine, "quit\n");
+  serverPrintf(engine, "quit\n");
   fclose(engine->fout);
   fclose(engine->fin);
   swFree(engine->name);
@@ -269,9 +272,9 @@ bool swSpeak(swEngine engine, const char *text, bool isUTF8) {
   // TODO: deal with isUTF8
   // TODO: replace any \n. with \n..
   engine->cancel = false;
-  fputs("speak\n", engine->fin);
-  fputs(text, engine->fin);
-  writeServer(engine, "\n.\n");
+  serverPuts(engine, "speak\n");
+  serverPuts(engine, text);
+  serverPrintf(engine, "\n.\n");
   return processSpeechData(engine);
 }
 
@@ -279,11 +282,19 @@ bool swSpeak(swEngine engine, const char *text, bool isUTF8) {
 // will be passed to the callback function passed to swStart.  This function
 // blocks until speech synthesis is complete.
 bool swSpeakChar(swEngine engine, const char *utf8Char, size_t bytes) {
+  if (utf8Char[bytes] != '\0') {
+    swLog("swSpeakChar: No terminating '\0'\n");
+    return false;
+  }
   bool valid = false;
   uint32_t unicodeChar;
   swFindUTF8LengthAndValidate(utf8Char, bytes, &valid, &unicodeChar);
+  if (!valid) {
+    swLog("Tried to speak invalid UTF8 char %s\n", utf8Char);
+    return false;
+  }
   engine->cancel = false;
-  fprintf(engine->fin, "char %s\n", utf8Char);
+  serverPrintf(engine, "char %s\n", utf8Char);
   return processSpeechData(engine);
 }
 
@@ -343,7 +354,7 @@ uint32_t swGetSampleRate(swEngine engine) {
 
 // Get a list of supported voices.  The caller can call swFreeStrings
 char **swListVoices(swEngine engine, uint32_t *numVoices) {
-  writeServer(engine, "get voices\n");
+  serverPrintf(engine, "get voices\n");
   return readStringList(engine, numVoices);
 }
 
@@ -354,7 +365,7 @@ bool swSetSpeed(swEngine engine, float speed) {
     sonicSetSpeed(engine->sonic, speed);
     return true;
   }
-  writeServer(engine, "set speed %f\n", speed);
+  serverPrintf(engine, "set speed %f\n", speed);
   return expectTrue(engine);
 }
 
@@ -365,19 +376,19 @@ bool swSetPitch(swEngine engine, float pitch) {
     sonicSetPitch(engine->sonic, pitch);
     return true;
   }
-  writeServer(engine, "set pitch %f\n", pitch);
+  serverPrintf(engine, "set pitch %f\n", pitch);
   return expectTrue(engine);
 }
 
 // Select a voice by it's identifier
 bool swSetVoice(swEngine engine, const char *voice) {
-  writeServer(engine, "set voice %s\n", voice);
+  serverPrintf(engine, "set voice %s\n", voice);
   return expectTrue(engine);
 }
 
 // Return the engine's native encoding.
 swEncoding swGetEncoding(swEngine engine) {
-  writeServer(engine, "get encoding\n");
+  serverPrintf(engine, "get encoding\n");
   char *line = swReadLine(engine->fout);
   swEncoding encoding = SW_UTF8;
   if(!strcmp(line, "ANSI")) {
@@ -399,13 +410,13 @@ bool swSpeechCanceled(swEngine engine) {
 
 // List available variations on voices.
 char **swGetVariants(swEngine engine, uint32_t *numVariants) {
-  writeServer(engine, "get variants\n");
+  serverPrintf(engine, "get variants\n");
   return readStringList(engine, numVariants);
 }
 
 // Select a voice variant by it's identifier
 bool swSetVariant(swEngine engine, const char *variant) {
-  writeServer(engine, "set variant %s\n", variant);
+  serverPrintf(engine, "set variant %s\n", variant);
   return expectTrue(engine);
 }
 
@@ -421,18 +432,18 @@ bool swSetPunctuation(swEngine engine, swPunctuationLevel level) {
     fprintf(stderr, "Unknonwn punctuation level");
     exit(1);
   }
-  writeServer(engine, "set punctuation %s\n", levelName);
+  serverPrintf(engine, "set punctuation %s\n", levelName);
   return expectTrue(engine);
 }
 
 // Enable or disable ssml support.
 bool swSetSSML(swEngine engine, bool enable) {
-  writeServer(engine, "set ssml %s\n", enable? "true" : "false");
+  serverPrintf(engine, "set ssml %s\n", enable? "true" : "false");
   return expectTrue(engine);
 }
 
 // Return the protocol version, Currently 1 for all engines.
 uint32_t swGetVersion(swEngine engine) {
-  writeServer(engine, "get version\n");
+  serverPrintf(engine, "get version\n");
   return readUint32(engine);
 }

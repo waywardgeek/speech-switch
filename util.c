@@ -8,6 +8,31 @@
 
 #include "util.h"
 
+static FILE *swLogFile = NULL;
+
+#ifdef SW_DEBUG
+
+// Call at program initialization to set the name of the log file.
+void swSetLogFileName(const char *logFileName) {
+  if (swLogFile != NULL) {
+    fclose(swLogFile);
+  }
+  swLogFile = fopen(logFileName, "w");
+}
+
+// Write a formatted string to the log file.
+void swLog(const char *format, ...) {
+  if (swLogFile == NULL) {
+    swLogFile = fopen("/tmp/speechsw.log", "w");
+  }
+  va_list ap;
+  va_start(ap, format);
+  vfprintf(swLogFile, format, ap);
+  va_end(ap);
+  fflush(swLogFile);
+}
+#endif
+
 // Just make a copy of a string.
 char *swCopyString(const char *string) {
   char *newString = swCalloc(strlen(string) + 1, sizeof(char));
@@ -66,8 +91,7 @@ char **swListDirectory(const char *dirName, uint32_t *numFiles) {
 }
 
 // This function, frees a voice list created with getVoices.
-void swFreeStringList(char **stringList, uint32_t numStrings)
-{
+void swFreeStringList(char **stringList, uint32_t numStrings) {
   for (int i = 0; i < numStrings; i++) {
     free(stringList[i]);
   }
@@ -75,8 +99,7 @@ void swFreeStringList(char **stringList, uint32_t numStrings)
 }
 
 // Make a copy of a string list.
-char **swCopyStringList(const char **stringList, uint32_t numStrings)
-{
+char **swCopyStringList(const char **stringList, uint32_t numStrings) {
   char **newList = swCalloc(numStrings, sizeof(char*));
   for (int i = 0; i < numStrings; i++) {
     newList[i] = swCopyString(stringList[i]);
@@ -105,26 +128,21 @@ char *swSprintf(const char *format, ...) {
 // The result must be freed by the caller.
 char *swReadLine(FILE *file) {
   uint32_t bufSize = 42;
-  char *buf = calloc(bufSize, sizeof(char));
-  if (buf == NULL) {
-    return NULL;
-  }
+  char *buf = swCalloc(bufSize, sizeof(char));
   uint32_t pos = 0;
   int c = getc(file);
   while(c != EOF && c != '\n') {
     if (c >= ' ') {
       if (pos+1 == bufSize) {
         bufSize <<= 1;
-        buf = realloc(buf, bufSize);
-        if (buf == NULL) {
-          return NULL;
-        }
+        buf = swRealloc(buf, bufSize, sizeof(char));
       }
       buf[pos++] = c;
     }
     c = getc(file);
   }
   buf[pos] = '\0';
+  swLog("swReadLine: %s\n", buf);
   return buf;
 }
 
@@ -187,8 +205,8 @@ int swForkWithStdio(const char *exePath, FILE **fin, FILE **fout, ...) {
 void *swCalloc(size_t numElements, size_t elementSize) {
   void *mem = calloc(numElements, elementSize);
   if (mem == NULL) {
-  fprintf(stderr, "Out of memory\n");
-  exit(1);
+    fprintf(stderr, "Out of memory\n");
+    exit(1);
   }
   return mem;
 }
@@ -197,8 +215,8 @@ void *swCalloc(size_t numElements, size_t elementSize) {
 void *swRealloc(void *mem, size_t numElements, size_t elementSize) {
   mem = realloc(mem, numElements*elementSize);
   if (mem == NULL) {
-  fprintf(stderr, "Out of memory\n");
-  exit(1);
+    fprintf(stderr, "Out of memory\n");
+    exit(1);
   }
   return mem;
 }
@@ -213,67 +231,67 @@ void swFree(void *mem) {
 // so many applications, likely including commercial TTS engines, leave security
 // holes open through UTF-8 encoding attacks.  Return the 32-bit unicode value
 // in unicodeChar, if it is non-NULL.
-size_t swFindUTF8LengthAndValidate(const char *text, size_t text_len,
-  bool *valid, uint32_t *unicodeChar) {
-  if (text_len == 0) {
-  return false;
+size_t swFindUTF8LengthAndValidate(const char *text, size_t textLen,
+    bool *valid, uint32_t *unicodeChar) {
+  if (textLen == 0) {
+    return false;
   }
   uint8_t c = (uint8_t)*text;
   *valid = true;
   if ((c & 0x80) == 0) {
-  // It's ASCII 
-  if (unicodeChar != NULL)  {
-    *unicodeChar = c;
-  }
-  if (c < ' ') {
-    // It's a control character - remove it. 
-    *valid = false;
-  }
-  return 1;
+    // It's ASCII 
+    if (unicodeChar != NULL)  {
+      *unicodeChar = c;
+    }
+    if (c < ' ') {
+      // It's a control character - remove it. 
+      *valid = false;
+    }
+    return 1;
   }
   c <<= 1;
   uint32_t expectedLength = 1;
   while(c & 0x80 && expectedLength <= 4) {
-  expectedLength++;
-  c <<= 1;
+    expectedLength++;
+    c <<= 1;
   }
   uint32_t unicodeCharacter = c >> expectedLength;
   uint32_t bits = 7 - expectedLength;
   if (expectedLength > 4) {
-  // No unicode values are coded for more than 4 bytes 
-  *valid = false;
+    // No unicode values are coded for more than 4 bytes 
+    *valid = false;
   }
   if (expectedLength == 1 || (expectedLength == 2 && unicodeCharacter <= 1)) {
-  // We could have coded this as ASCII 
-  *valid = false;
+    // We could have coded this as ASCII 
+    *valid = false;
   }
   size_t length = 1;
-  if (length >= text_len) {
-  return false;
-  }
-  c = *++text;
-  while((c & 0xc0) == 0x80) {
-  unicodeCharacter = (unicodeCharacter << 6) | (c & 0x3f);
-  bits += 6;
-  length++;
-  if (length >= text_len) {
+  if (length >= textLen) {
     return false;
   }
   c = *++text;
+  while((c & 0xc0) == 0x80) {
+    unicodeCharacter = (unicodeCharacter << 6) | (c & 0x3f);
+    bits += 6;
+    length++;
+    if (length >= textLen) {
+      return false;
+    }
+    c = *++text;
   }
   if (length != expectedLength || unicodeCharacter > 0x10ffff ||
-  (unicodeCharacter >= 0xd800 && unicodeCharacter <= 0xdfff)) {
-  /* Unicode only defines characters up to 0x10ffff, and excludes values
-     0xd800 through 0xdfff */
-  *valid = false;
+      (unicodeCharacter >= 0xd800 && unicodeCharacter <= 0xdfff)) {
+    /* Unicode only defines characters up to 0x10ffff, and excludes values
+       0xd800 through 0xdfff */
+    *valid = false;
   }
-  /* Check to see if we could have encoded the character in the next smaller
-   number of bits, in which case it's invalid. */
+  // Check to see if we could have encoded the character in the next smaller
+  // number of bits, in which case it's invalid.
   if (unicodeCharacter >> (bits - 5) == 0) {
-  *valid = false;
+    *valid = false;
   }
   if (unicodeChar != NULL) {
-  *unicodeChar = 0;
+    *unicodeChar = 0;
    }
   *unicodeChar = unicodeCharacter;
   return length;
@@ -283,30 +301,30 @@ size_t swFindUTF8LengthAndValidate(const char *text, size_t text_len,
 // too large to encode, return 0.  |out| should have space for at least 4 bytes.
 uint32_t swEncodeUTF8(uint32_t unicodeChar, char *out) {
   if (unicodeChar <= 0x7f) {
-  // First code point.
-  out[0] = unicodeChar;
-  return 1;
+    // First code point.
+    out[0] = unicodeChar;
+    return 1;
   }
   if (unicodeChar <= 0x7ff) {
-  // Second code point.
-  out[0] = 0xc0 | (unicodeChar >> 6);
-  out[1] = 0x8 | (unicodeChar & 0x3f);
-  return 2;
+    // Second code point.
+    out[0] = 0xc0 | (unicodeChar >> 6);
+    out[1] = 0x8 | (unicodeChar & 0x3f);
+    return 2;
   }
   if (unicodeChar <= 0xffff) {
-  // Third code point.
-  out[0] = 0xe0 | (unicodeChar >> 12);
-  out[1] = 0x8 | ((unicodeChar >> 6) & 0x3f);
-  out[2] = 0x8 | (unicodeChar & 0x3f);
-  return 2;
+    // Third code point.
+    out[0] = 0xe0 | (unicodeChar >> 12);
+    out[1] = 0x8 | ((unicodeChar >> 6) & 0x3f);
+    out[2] = 0x8 | (unicodeChar & 0x3f);
+    return 2;
   }
   if (unicodeChar <= 0x10ffff) {
-  // Fourth code point.
-  out[0] = 0xf0 | (unicodeChar >> 18);
-  out[1] = 0x8 | ((unicodeChar >> 12) & 0x3f);
-  out[2] = 0x8 | ((unicodeChar >> 6) & 0x3f);
-  out[3] = 0x8 | (unicodeChar & 0x3f);
-  return 2;
+    // Fourth code point.
+    out[0] = 0xf0 | (unicodeChar >> 18);
+    out[1] = 0x8 | ((unicodeChar >> 12) & 0x3f);
+    out[2] = 0x8 | ((unicodeChar >> 6) & 0x3f);
+    out[3] = 0x8 | (unicodeChar & 0x3f);
+    return 2;
   }
   // Too large.
   return 0;
@@ -315,8 +333,8 @@ uint32_t swEncodeUTF8(uint32_t unicodeChar, char *out) {
 // Convert a unicode character to ANSI.  Return 0 if it cannot be converted.
 uint8_t swUnicodeToAnsi(uint32_t unicodeChar) {
   if (unicodeChar <= 0x7f) {
-  // ASCII is the same in both.
-  return unicodeChar;
+    // ASCII is the same in both.
+    return unicodeChar;
   }
   switch (unicodeChar) {
   case 0x20AC: return 0x80;
@@ -348,7 +366,7 @@ uint8_t swUnicodeToAnsi(uint32_t unicodeChar) {
   case 0x0178: return 0x9F;
   }
   if (unicodeChar > 0xff) {
-  return 0;  // Not an ANSI character.
+    return 0;  // Not an ANSI character.
   }
   return unicodeChar;  // Encoded the same in both.
 }
@@ -356,8 +374,8 @@ uint8_t swUnicodeToAnsi(uint32_t unicodeChar) {
 // Convert an ANSI character to unicode.
 uint32_t swAnsiToUnicodeUnicodeToAnsi(uint8_t ansiChar) {
   if (ansiChar <= 0x7f) {
-  // ASCII is the same in both.
-  return ansiChar;
+    // ASCII is the same in both.
+    return ansiChar;
   }
   switch (ansiChar) {
   case 0x80: return 0x20AC;
