@@ -41,14 +41,14 @@ static void serverPrintf(swEngine engine, const char *format, ...) {
   vsnprintf(buf, MAX_TEXT_LENGTH - 1, format, ap);
   va_end(ap);
   buf[MAX_TEXT_LENGTH - 1] = '\0';
-  swLog("Writing %s to engine\n", buf);
+  swLog("Writing to engine: %s", buf);
   fputs(buf, engine->fin);
   fflush(engine->fin);
 }
 
 // Write a string to the server, without adding a newline.
 static void serverPuts(swEngine engine, const char *text) {
-  swLog("Writing %s to engine\n", text);
+  swLog("Writing to engine: %s", text);
   fputs(text, engine->fin);
   fflush(engine->fin);
 }
