@@ -61,7 +61,7 @@ char *swConvertANSIToASCII(char c);
 // so many applications, likely including commercial TTS engines, leave security
 // holes open through UTF-8 encoding attacks.  Return the 32-bit unicode value
 // in unicodeChar, if it is non-NULL.
-size_t swFindUTF8LengthAndValidate(const char *text, size_t textLen,
+uint8_t swFindUTF8LengthAndValidate(const char *text, size_t textLen,
     bool *valid, uint32_t *unicodeChar);
 // Encode a unicode character as UTF-8.  Returne the number of bytes.  If it is
 // too large to encode, return 0.  |out| should have space for at least 4 bytes.

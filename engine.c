@@ -286,30 +286,6 @@ static void execSetSpeed(void) {
   writeBool(swSetSpeed(speed));
 }
 
-// Execute the setPunctuation command 
-static void execSetPunctuation(void) {
-  char *levelString = readWord();
-  int level = PUNCT_NONE;
-
-  if(levelString == NULL) {
-    writeBool(false);
-    return;
-  }
-  if(!strcasecmp(levelString, "none")) {
-    level = PUNCT_NONE;
-  } else if(!strcasecmp(levelString, "some")) {
-    level = PUNCT_SOME;
-  } else if(!strcasecmp(levelString, "most")) {
-    level = PUNCT_MOST;
-  } else if(!strcasecmp(levelString, "all")) {
-    level = PUNCT_ALL;
-  } else {
-    writeBool(false);
-    return;
-  }
-  writeBool(swSetPunctuationLevel(level));
-}
-
 // Execute the setSsml command 
 static void execSetSsml(void) {
   bool passed;
@@ -399,7 +375,6 @@ static void execHelp(void) {
     "set voice    - Select a voice by it's identifier\n"
     "set variant  - Select a voice variant by it's identifier\n"
     "set pitch    - Set the pitch\n"
-    "set punctuation [none|some|most|all] - Set punctuation level\n"
     "set speed    - Set the speed of speech\n"
     "set ssml [true|false] - Enable or disable ssml support\n"
     "speak      - Enter text on separate lines, ending with \".\" on a line by\n"
@@ -449,8 +424,6 @@ static bool executeCommand(void) {
       execSetPitch();
     } else if(!strcasecmp(key, "speed")) {
       execSetSpeed();
-    } else if(!strcasecmp(key, "punctuation")) {
-      execSetPunctuation();
     } else if(!strcasecmp(key, "ssml")) {
       execSetSsml();
     } else {
@@ -472,13 +445,12 @@ static bool executeCommand(void) {
   return true;
 }
 
-// Convert the short data to hex, in big-endian format.
-static char *convertToHex(const short *data, int numSamples) {
+// Convert the int16_t data to hex, in big-endian format.
+static char *convertToHex(const int16_t *data, int numSamples) {
   int length = numSamples*4 + 1;
   int i, j;
   char *p, value;
-  short sample;
-
+  int16_t sample;
   if(length > speechBufferSize) {
     speechBufferSize = length << 1;
     speechBuffer = (uint8_t *)swRealloc(speechBuffer, speechBufferSize, sizeof(char));
@@ -496,8 +468,39 @@ static char *convertToHex(const short *data, int numSamples) {
   return (char *)speechBuffer;
 }
 
+// Clamp an integer to an int16_t range.  For example, 0x8888 becomes 0x8000
+// (moste negative value), and 0x9999 becomes 0x7fff (most positive value).
+static inline int16_t clamp(int32_t sample) {
+  if (sample > INT16_MAX) {
+    return INT16_MAX;
+  }
+  if (sample < INT16_MIN) {
+    return INT16_MIN;
+  }
+  return sample;
+}
+
+/*
+// Some engines, like ibmtts, can overflow an int16 when speaking at very highi
+// speed.  This creates harsh pops.  Instead clamp at INT16_MAX and INT16_MIN.
+static void clampSamples(int16_t *data, uint32_t numSamples) {
+  static int32_t prevSample = 0;
+  for (uint32_t i = 0; i < numSamples; i++) {
+    int32_t sample = data[i];
+    if (sample > prevSample + 0x4000) {
+      sample -= 0x8000;
+    } else if (sample < prevSample - 0x4000) {
+      sample += 0x8000;
+    }
+    data[i] = clamp(sample);
+    prevSample = sample;
+  }
+}
+*/
+
 // Send audio samples in hex to the client.  Return false if the client cancelled. 
-bool swProcessAudio(const short *data, int numSamples) {
+bool swProcessAudio(int16_t *data, uint32_t numSamples) {
+  // clampSamples(data, numSamples);
   char *hexBuf = convertToHex(data, numSamples);
   putClient(hexBuf);
   if(!readLine()) {

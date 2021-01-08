@@ -42,6 +42,7 @@ static void usage(void) {
     "-P       -- Use sonic to adjust pitch rather than the speech engine.\n"
     "-s speed     -- Speech speed (1.0 is normal).\n"
     "-S       -- Use sonic to adjust speed rather than the speech engine.\n"
+    "-u <0-3> -- Set punctuation level.  0 = none, 1 = some (defauilt, 2 = moset, 3 = all.\n"
     "-v voice     -- Name of voice to use.\n"
     "-V variant   -- List variants available for a given voice.\n"
     "-w waveFile  -- Output wave file rather than playing sound.\n");
@@ -181,7 +182,8 @@ static void speak(swEngine engine, const char *text, bool speakChar) {
 // Speak the text.  Do this in a stream oriented way.
 static void speakText(const char *waveFileName, char *text, const char *textFileName,
     const char *engineName, const char *voice, const char *variant, float speed,
-    float pitch, bool useSonicSpeed, bool useSonicPitch, bool speakChar) {
+    float pitch, bool useSonicSpeed, bool useSonicPitch, bool speakChar,
+    uint32_t punctuationLevel) {
   // Start the speech engine
   struct swContextSt context = {0,};
   swEngine engine = swStart(swLibDir, engineName, speechCallback, &context);
@@ -214,6 +216,7 @@ static void speakText(const char *waveFileName, char *text, const char *textFile
   if (pitch != 0.0) {
     swSetPitch(engine, pitch);
   }
+  swSetPunctuation(engine, punctuationLevel);
   // TODO: break this into paragraphs
   if (textFileName != NULL) {
     FILE *file = fopen(textFileName, "r");
@@ -256,8 +259,9 @@ int main(int argc, char *argv[]) {
   bool useSonicPitch = false;
   swConvertToASCII = false;
   bool speakChar = false;
+  int32_t punctuationLevel = 1;
   int opt;
-  while ((opt = getopt(argc, argv, "ace:f:lLnp:Ps:Sv:V:w:")) != -1) {
+  while ((opt = getopt(argc, argv, "ace:f:lLnp:Ps:Su:v:V:w:")) != -1) {
     switch (opt) {
     case 'a':
       swConvertToASCII = true;
@@ -314,6 +318,9 @@ int main(int argc, char *argv[]) {
     case 'S':
       useSonicSpeed = true;
       break;
+    case 'u':
+      punctuationLevel = atoi(optarg);
+      break;
     case 'v':
       voiceName = optarg;
       break;
@@ -358,7 +365,7 @@ int main(int argc, char *argv[]) {
     addText("Hello, World!");
   }
   speakText(waveFileName, swText, textFileName, engineName, voiceName, voiceVariant, speed,
-      pitch, useSonicSpeed, useSonicPitch,speakChar);
+      pitch, useSonicSpeed, useSonicPitch, speakChar, punctuationLevel);
   swFree(swLibDir);
   swFree(swText);
   return 0;

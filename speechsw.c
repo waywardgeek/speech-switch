@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+#include <strings.h>  // For strcasecmp.
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -13,6 +14,7 @@
 
 #define MAX_TEXT_LENGTH (1 << 16)
 #define SAMPLE_BUFFER_SIZE 128
+#define MAX_LANGUAGE_CODE_LEN 4
 
 struct swEngineSt {
   char *name;
@@ -23,14 +25,72 @@ struct swEngineSt {
   sonicStream sonic;
   int16_t *samples;
   uint32_t sampleBufferSize;
+  char *textBuffer;
+  uint32_t textBufferSize;
+  uint32_t textBufferPos;
   uint32_t sampleRate;
+  swPunctuationLevel punctuationLevel;
   float speed;
   float pitch;
   int pid;
+  char languageCode[MAX_LANGUAGE_CODE_LEN];
+  bool useSSML;
   bool useSonicPitch;
   bool useSonicSpeed;
   // Volatile because it could be set from a different thread.
   volatile bool cancel;
+};
+
+typedef struct {
+  uint32_t unicodeChar;
+  const char *name;
+  swPunctuationLevel punctuationLevel;
+} swCharName;
+
+typedef struct {
+  const char *languageCode;
+  const swCharName *charNames;
+  uint32_t numCharNames;
+} swPunctuationList;
+
+// These are the substitutions for reading puncutation.  Note that they must be
+// sorted, since we do lookup with binary search.
+swCharName swEnglishCharNames[] = {
+  {'!', "exclamation point", SW_PUNCT_ALL},
+  {'"', "double quote", SW_PUNCT_ALL},
+  {'#', "number sign", SW_PUNCT_SOME},
+  {'$', "dollar sign", SW_PUNCT_SOME},
+  {'%', "percent", SW_PUNCT_SOME},
+  {'&', "ampersand", SW_PUNCT_SOME},
+  {'\'', "single quote", SW_PUNCT_ALL},
+  {'(', "open parentheses", SW_PUNCT_MOST},
+  {')', "close parentheses", SW_PUNCT_MOST},
+  {'*', "star", SW_PUNCT_SOME},
+  {'+', "plus", SW_PUNCT_SOME},
+  {',', "comma", SW_PUNCT_ALL},
+  {'-', "hyphen", SW_PUNCT_MOST},
+  {'.', "period", SW_PUNCT_ALL},
+  {'/', "slash", SW_PUNCT_SOME},
+  {':', "colon", SW_PUNCT_MOST},
+  {';', "semicolon", SW_PUNCT_MOST},
+  {'<', "less than", SW_PUNCT_SOME},
+  {'=', "equals", SW_PUNCT_SOME},
+  {'>', "greather than", SW_PUNCT_SOME},
+  {'?', "question mark", SW_PUNCT_ALL},
+  {'@', "at sign", SW_PUNCT_SOME},
+  {'[', "left square bracket", SW_PUNCT_MOST},
+  {'\\', "backslash", SW_PUNCT_SOME},
+  {']', "right square bracket", SW_PUNCT_MOST},
+  {'^', "caret", SW_PUNCT_SOME},
+  {'_', "underscore", SW_PUNCT_SOME},
+  {'`', "backquote", SW_PUNCT_SOME},
+  {'{', "left curly brace", SW_PUNCT_MOST},
+  {'|', "vertical bar", SW_PUNCT_SOME},
+  {'}', "right curly brace", SW_PUNCT_MOST},
+  {'~', "tilde", SW_PUNCT_SOME}
+};
+swPunctuationList swPunctuation[] = {
+  {"en", swEnglishCharNames, sizeof(swEnglishCharNames)/sizeof(swCharName)}
 };
 
 // Write a formatted string to the server.
@@ -122,6 +182,8 @@ swEngine swStart(const char *libDirectory, const char *engineName,
   engine->callbackContext = callbackContext;
   engine->sampleBufferSize = SAMPLE_BUFFER_SIZE;
   engine->samples = swCalloc(engine->sampleBufferSize, sizeof(int16_t));
+  engine->textBufferSize = 42;
+  engine->textBuffer = swCalloc(engine->textBufferSize, sizeof(char));
   engine->pid = swForkWithStdio(engineExeName, &engine->fin, &engine->fout,
     enginesDir, NULL);
   swFree(engineExeName);
@@ -135,6 +197,8 @@ swEngine swStart(const char *libDirectory, const char *engineName,
   if (engine->useSonicSpeed || engine->useSonicPitch) {
     startSonic(engine);
   }
+  // Default to English.
+  strcpy(engine->languageCode, "en");
   return engine;
 }
 
@@ -146,6 +210,7 @@ void swStop(swEngine engine) {
   swFree(engine->name);
   stopSonic(engine);
   swFree(engine->samples);
+  swFree(engine->textBuffer);
   kill(engine->pid, SIGKILL);
   swFree(engine);
 }
@@ -206,7 +271,7 @@ static void adjustSamples(swEngine engine, uint32_t *numSamples) {
 static void growSampleBuffer(swEngine engine, uint32_t bufSize) {
   if (engine->sampleBufferSize < bufSize) {
     engine->sampleBufferSize = bufSize << 2;
-    engine->samples = swRealloc(engine->samples, engine->sampleBufferSize, sizeof(char));
+    engine->samples = swRealloc(engine->samples, engine->sampleBufferSize, sizeof(int16_t));
   }
 }
 
@@ -265,15 +330,114 @@ static bool processSpeechData(swEngine engine) {
   return !cancelled;
 }
 
-// Synthesize speech samples.  Synthesized samples will be passed to the 
+// Grow the engine's text buffer to at least bufSize.
+static void growTextBuffer(swEngine engine, uint32_t bufSize) {
+  if (engine->textBufferSize < bufSize) {
+    engine->textBufferSize = bufSize << 2;
+    engine->textBuffer = swRealloc(engine->textBuffer, engine->textBufferSize, sizeof(char));
+  }
+}
+
+// Find the current language's punctuation lilst.  Return NULL if not found.
+static const swPunctuationList *findCurrentLanguagePunctuationList(swEngine engine) {
+  if (engine->languageCode[0] == 0) {
+    return NULL;
+  }
+  for (uint32_t i = 0; i < sizeof(swPunctuation)/sizeof(swPunctuationList); i++) {
+    swPunctuationList *punctuationList = swPunctuation + i;
+    if (!strcasecmp(punctuationList->languageCode, engine->languageCode)) {
+      return punctuationList;
+    }
+  }
+  return NULL;
+}
+
+// Find the character in the punctuation list.  Use binary search.  Return NULL
+// if not found.
+static const swCharName *findCharNameInList(const swPunctuationList *punctuationList,
+    uint32_t unicodeChar) {
+  uint32_t start = 0;
+  uint32_t end = punctuationList->numCharNames;
+  do {
+    uint32_t middle = (start + end) >> 1;
+    const swCharName *charName = punctuationList->charNames + middle;
+    if (unicodeChar < charName->unicodeChar) {
+      end = middle;
+    } else if (unicodeChar > charName->unicodeChar) {
+      start = middle + 1;
+    } else {
+      return charName;
+    }
+  } while (start < end);
+  return NULL;
+}
+
+// Add len characters to the text buffer.  Return the new buffer position.
+static void addToTextBuffer(swEngine engine, const char *text, uint32_t len) {
+  uint32_t pos = engine->textBufferPos;
+  if (pos + len + 1 < pos) {
+    fprintf(stderr, "Integer overflow in text buffer resize.\n");
+    exit (1);
+  }
+  growTextBuffer(engine, pos + len + 1);
+  memcpy(engine->textBuffer + pos, text, len);
+  engine->textBuffer[pos + len] = '\0';
+  engine->textBufferPos += len;
+}
+
+// Process text to speak appropriate punctuation.  Write result to
+// engine->textBuffer.
+static void processPunctuation(swEngine engine, const char *text) {
+  const swPunctuationList *punctuationList = findCurrentLanguagePunctuationList(engine);
+  if (punctuationList == NULL) {
+    // Copy text verbatum.
+    growTextBuffer(engine, strlen(text) + 1);
+    strcpy(engine->textBuffer, text);
+    return;
+  }
+  engine->textBufferPos = 0;
+  const char *p = text;
+  const char *end = text + strlen(text);
+  while (p != end) {
+    bool valid;
+    uint32_t unicodeChar;
+    uint8_t len = swFindUTF8LengthAndValidate(p, end - p, &valid, &unicodeChar);
+    if (valid) {
+      const swCharName *charName = findCharNameInList(punctuationList, unicodeChar);
+      if (charName == NULL) {
+        // Not punctuation.  Just copy it.
+        addToTextBuffer(engine, p, len);
+      } else if (charName->punctuationLevel <= engine->punctuationLevel) {
+        // Read the namem of the punctuation character.
+        addToTextBuffer(engine, " ", 1);
+        addToTextBuffer(engine, charName->name, strlen(charName->name));
+        addToTextBuffer(engine, " ", 1);
+      } else {
+        // Replace the punctuation with a space.
+        addToTextBuffer(engine, " ", 1);
+      }
+    }
+    p += len;
+  }
+}
+
+// Synthesize speech samples.  Synthesized samples will be passed to the
 // callback function passed to swStart.  This function blocks until speech
 // synthesis is complete.
 bool swSpeak(swEngine engine, const char *text, bool isUTF8) {
   // TODO: deal with isUTF8
   // TODO: replace any \n. with \n..
+  if (engine->useSSML) {
+    // Copy text verbatum.
+    growTextBuffer(engine, strlen(text) + 1);
+    strcpy(engine->textBuffer, text);
+  } else {
+    // Replace punctuation based on the punctuation level.
+    processPunctuation(engine, text);
+  }
   engine->cancel = false;
   serverPuts(engine, "speak\n");
-  serverPuts(engine, text);
+  serverPuts(engine, engine->textBuffer);
   serverPrintf(engine, "\n.\n");
   return processSpeechData(engine);
 }
@@ -380,8 +544,29 @@ bool swSetPitch(swEngine engine, float pitch) {
   return expectTrue(engine);
 }
 
+// The local should be appended to the voice name, e.g. "American
+// Enblish,en-US".  Set the expected language, which is used to map punctuation
+// to words in that language.
+static void updateLanguage(swEngine engine, const char *voice) {
+  char *p = strrchr(voice, ',');
+  if (p == NULL) {
+    return;
+  }
+  p++;
+  char *q = strchr(p, '-');
+  if (q == NULL) {
+    q = p + strlen(p);  // Make q point to end.
+  }
+  if (q - p > MAX_LANGUAGE_CODE_LEN - 1) {
+    return;  // Language code is too long.
+  }
+  strncpy(engine->languageCode, p, q - p);
+  engine->languageCode[q - p] = '\0';
+}
+
 // Select a voice by it's identifier
 bool swSetVoice(swEngine engine, const char *voice) {
+  updateLanguage(engine, voice);
   serverPrintf(engine, "set voice %s\n", voice);
   return expectTrue(engine);
 }
@@ -422,22 +607,16 @@ bool swSetVariant(swEngine engine, const char *variant) {
 
 // Set the punctuation level: none, some, most, or all.
 bool swSetPunctuation(swEngine engine, swPunctuationLevel level) {
-  char *levelName = NULL;
-  switch(level) {
-  case SW_PUNCT_NONE: levelName = "none"; break;
-  case SW_PUNCT_SOME: levelName = "some"; break;
-  case SW_PUNCT_MOST: levelName = "most"; break;
-  case SW_PUNCT_ALL: levelName = "all"; break;
-  default:
-    fprintf(stderr, "Unknonwn punctuation level");
-    exit(1);
+  if (level < SW_PUNCT_NONE || level > SW_PUNCT_ALL) {
+    return false;
   }
-  serverPrintf(engine, "set punctuation %s\n", levelName);
-  return expectTrue(engine);
+  engine->punctuationLevel = level;
+  return true;
 }
 
 // Enable or disable ssml support.
 bool swSetSSML(swEngine engine, bool enable) {
+  engine->useSSML = enable;
   serverPrintf(engine, "set ssml %s\n", enable? "true" : "false");
   return expectTrue(engine);
 }

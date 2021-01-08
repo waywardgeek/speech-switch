@@ -1,10 +1,4 @@
-#ifndef WIN32
 #include <stdbool.h>
-#else
-#define bool int
-#define true 1
-#define false 0
-#endif
 #include <stdint.h>
 
 #include "util.h"
@@ -40,16 +34,8 @@ bool swSpeakChar(uint32_t unicodeChar);
 // processed with this callback.  speakText should block until all samples are
 // synthesized.  Samples are in 16-bit signed notation, from -32767 to 32767.
 // Returns true to continue synthesis, false to cancel.
-bool swProcessAudio(const short *data, int numSamples);
-// Set the punctuation level for the engine.  By default, it should be set to none.
-typedef enum {
-    PUNCT_NONE = 0,
-    PUNCT_SOME = 1,
-    PUNCT_MOST = 2,
-    PUNCT_ALL = 3
-} swPunctLevel;
-bool swSetPunctuationLevel(swPunctLevel level);
-// Enable or disable support for SSML.  By default, SSML support should be disabled.
+bool swProcessAudio(int16_t *data, uint32_t numSamples);
+// Enable or disable support for SSML.  By default, SSML support be disabled.
 bool swSetSSML(bool value);
 // These two functions are only for voices that have "variants", which so far
 // means formant synthesizers, specifically espeak, and ibmtts.  Simply return
@@ -62,5 +48,5 @@ bool swSetVoiceVariant(const char *variant);
 // server will expect the client to use ANSI as well.
 void swSwitchToANSI(void);
 // Convert a factor that changes pitch or speed, to minRange .. maxRange.
-int swFactorToRange(float factor, float minFactor, float maxFactor, int minRange,
-    int defaultRange, int maxRange);
+int swFactorToRange(float factor, float minFactor, float maxFactor, int32_t minRange,
+    int32_t defaultRange, int maxRange);

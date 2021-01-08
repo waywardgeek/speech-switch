@@ -265,12 +265,6 @@ bool swSetPitch(float pitch) {
   return false;
 }
 
-// No punctuation level support is directly built into pico.  Let SH deal with
-// it.
-bool swSetPunctuationLevel(swPunctLevel level) {
-  return true;
-}
-
 // SSML is not directly supported, though a special svox pico tag language is.
 bool swSetSSML(bool value) {
   return true;

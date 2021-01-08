@@ -242,24 +242,34 @@ bool swSetPitch(float pitch) {
   return eciSetVoiceParam(swEciHandle, 0, eciPitchBaseline, swCurrentPitch) != -1;
 }
 
-// Set the punctuation level, which will be PUNCT_NONE, PUNCT_SOME, PUNCT_MOST, or PUNCT_ALL.
-bool swSetPunctuationLevel(swPunctLevel level) {
-  return true; // No support for punctuation levels
-}
-
 // Enable or disable SSML support.
 bool swSetSSML(bool value) {
   return true; // No support for SSML
+}
+
+// Convert characters >= 0x80 to spaces.
+static char *cleanText(const char *text) {
+  char *newText = swCopyString(text);
+  char *p = newText;
+  while (*p != '\0') {
+    if (*p & 0x80) {
+      *p = ' ';
+    }
+    p++;
+  }
+  return newText;
 }
 
 // Speak the text.  For some reason, we have to call etiSynchronize here, making
 // it impossible to process audio output while synthesizing in small blocks, or
 // to abort.
 bool swSpeakText(const char *text) {
+  char *newText = cleanText(text);
   swCancelled = false;
-  eciAddText(swEciHandle, text);
+  eciAddText(swEciHandle, newText);
   eciSynthesize(swEciHandle);
   eciSynchronize(swEciHandle);
+  swFree(newText);
   return true;
 }
 

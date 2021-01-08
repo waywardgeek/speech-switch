@@ -100,11 +100,6 @@ bool swSetPitch(float pitch) {
   return false;
 }
 
-// Assume SpeechSwitch will do this for us.
-bool swSetPunctuationLevel(swPunctLevel level) {
-  return false;
-}
-
 // Enable or disable SSML support.
 bool swSetSSML(bool value) {
   return false;

@@ -141,26 +141,6 @@ bool swSetPitch(float pitch) {
   return espeak_SetParameter(espeakPITCH, espeakPitch, 0) == EE_OK;
 }
 
-// Set the punctuation leve, which will be PUNCT_NONE, PUNCT_SOME, or PUNCT_ALL.
-bool swSetPunctuationLevel(swPunctLevel level) {
-  int espeakLevel;
-
-  switch(level) {
-  case PUNCT_NONE:
-    espeakLevel = espeakPUNCT_NONE;
-    break;
-  case PUNCT_SOME:
-  case PUNCT_MOST:
-    espeakLevel = espeakPUNCT_SOME;
-    break;
-  case PUNCT_ALL:
-    espeakLevel = espeakPUNCT_ALL;
-  default:
-    return false;
-  }
-  return espeak_SetParameter(espeakPUNCTUATION, espeakLevel, 0) == EE_OK;
-}
-
 // Enable or disable SSML support.
 bool swSetSSML(bool value) {
   if (value) {

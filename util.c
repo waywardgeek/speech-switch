@@ -221,9 +221,11 @@ void *swRealloc(void *mem, size_t numElements, size_t elementSize) {
   return mem;
 }
 
-// Free memory.
+// Free memory.  Do nothing if mem is NULL.
 void swFree(void *mem) {
-  free(mem);
+  if (mem != NULL) {
+    free(mem);
+  }
 }
 
 // Return the length of the UTF-8 character pointed to by p.  Check that the
@@ -231,24 +233,25 @@ void swFree(void *mem) {
 // so many applications, likely including commercial TTS engines, leave security
 // holes open through UTF-8 encoding attacks.  Return the 32-bit unicode value
 // in unicodeChar, if it is non-NULL.
-size_t swFindUTF8LengthAndValidate(const char *text, size_t textLen,
+uint8_t swFindUTF8LengthAndValidate(const char *text, size_t textLen,
     bool *valid, uint32_t *unicodeChar) {
+  *valid = false;
   if (textLen == 0) {
-    return false;
+    return 0;
   }
   uint8_t c = (uint8_t)*text;
-  *valid = true;
   if ((c & 0x80) == 0) {
     // It's ASCII 
     if (unicodeChar != NULL)  {
       *unicodeChar = c;
     }
-    if (c < ' ') {
-      // It's a control character - remove it. 
-      *valid = false;
+    if (c >= ' ') {
+      // It's not a control character, so keep it.
+      *valid = true;
     }
     return 1;
   }
+  *valid = true;
   c <<= 1;
   uint32_t expectedLength = 1;
   while(c & 0x80 && expectedLength <= 4) {
@@ -267,7 +270,8 @@ size_t swFindUTF8LengthAndValidate(const char *text, size_t textLen,
   }
   size_t length = 1;
   if (length >= textLen) {
-    return false;
+    *valid = false;
+    return textLen;
   }
   c = *++text;
   while((c & 0xc0) == 0x80) {
@@ -275,7 +279,8 @@ size_t swFindUTF8LengthAndValidate(const char *text, size_t textLen,
     bits += 6;
     length++;
     if (length >= textLen) {
-      return false;
+      *valid = false;
+      return textLen;
     }
     c = *++text;
   }
