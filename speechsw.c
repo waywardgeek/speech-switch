@@ -249,24 +249,6 @@ static uint32_t convertHexToInt16(int16_t *samples, char *line) {
   return numSamples;
 }
 
-// Run sonic to adjust speed and/or pitch
-static void adjustSamples(swEngine engine, uint32_t *numSamples) {
-  sonicStream sonic = engine->sonic;
-  sonicWriteShortToStream(sonic, engine->samples, *numSamples);
-  *numSamples = sonicSamplesAvailable(sonic);
-  if (*numSamples == 0) {
-    return;
-  }
-  if (*numSamples > engine->sampleBufferSize) {
-    engine->sampleBufferSize = *numSamples << 1;
-    engine->samples = swRealloc(engine->samples, engine->sampleBufferSize, sizeof(int16_t));
-  }
-  if (sonicReadShortFromStream(sonic, engine->samples, *numSamples) != *numSamples) {
-    fprintf(stderr, "Error reading from sonic stream\n");
-    exit(1);
-  }
-}
-
 // Grow the engine's sample buffer to at least bufSize.
 static void growSampleBuffer(swEngine engine, uint32_t bufSize) {
   if (engine->sampleBufferSize < bufSize) {
@@ -275,30 +257,30 @@ static void growSampleBuffer(swEngine engine, uint32_t bufSize) {
   }
 }
 
+// Run sonic to adjust speed and/or pitch.  Update numSamples to the new number
+// of samples.
+static void adjustSamples(swEngine engine, uint32_t *numSamples) {
+  sonicStream sonic = engine->sonic;
+  sonicWriteShortToStream(sonic, engine->samples, *numSamples);
+  *numSamples = sonicSamplesAvailable(sonic);
+  if (*numSamples == 0) {
+    return;
+  }
+  growSampleBuffer(engine, *numSamples);
+  if (sonicReadShortFromStream(sonic, engine->samples, *numSamples) != *numSamples) {
+    fprintf(stderr, "Error reading from sonic stream\n");
+    exit(1);
+  }
+}
+
 // Read speech data in hexidecimal from the server until "true" is read.
 // Caller must free the samples.
 static int16_t *readSpeechData(swEngine engine, uint32_t *numSamples) {
-  static bool ending = false;  // Used to return flushed samples from Sonic when ending.
-  if (ending) {
-    ending = false;
-    *numSamples = 0;
-    return NULL;
-  }
   char *line = swReadLine(engine->fout);
   if(!strcmp(line, "true")) {
     swFree(line);
-    if (engine->sonic != NULL) {
-      // If using Sonic, we're almost, but not quite done.
-      sonicFlushStream(engine->sonic);
-      *numSamples = sonicSamplesAvailable(engine->sonic);
-      if (*numSamples != 0) {
-        growSampleBuffer(engine, *numSamples);
-        ending = true;
-        return engine->samples;
-      }
-    }
-    // We're done.
     *numSamples = 0;
+    // We're done.
     return NULL;
   }
   uint32_t bufSize  = strlen(line)/4;
@@ -324,6 +306,16 @@ static bool processSpeechData(swEngine engine) {
     }
     writeBool(engine, !cancelled);
     samples = readSpeechData(engine, &numSamples);
+  }
+  if (!cancelled && engine->sonic != NULL) {
+    // When using Sonic, flush the stream.
+    sonicFlushStream(engine->sonic);
+    uint32_t numFinalSamples = sonicSamplesAvailable(engine->sonic);
+    if (numFinalSamples != 0) {
+      adjustSamples(engine, &numSamples);
+      cancelled = engine->callback(engine, samples, numSamples, engine->cancel,
+          engine->callbackContext);
+    }
   }
   // We're done, so signal end of synthesis by sending 0 samples.
   cancelled = engine->callback(engine, samples, 0, engine->cancel, engine->callbackContext);

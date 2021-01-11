@@ -272,7 +272,7 @@ bool swSetSSML(bool value) {
 
 // Speak the text.  Block until finished.
 bool swSpeakText(const char *text) {
-  pico_Int16  textRemaining = strlen(text) + 1; /* includes terminating ‘\0’*/
+  pico_Int16 textRemaining = strlen(text) + 1; // Includes terminating ‘\0’
   pico_Int16 bytesSent, bytesReceived, outDataType;
   pico_Char *inp = (pico_Char *)text;
   short *data;
@@ -284,10 +284,10 @@ bool swSpeakText(const char *text) {
     textRemaining -= bytesSent;
     inp += bytesSent;
     do {
-      status = pico_getData(picoEngine, (void *)outBuffer, MAX_OUTBUF_SIZE - 1, &bytesReceived, &outDataType);
+      status = pico_getData(picoEngine, (void *)outBuffer, MAX_OUTBUF_SIZE - 1,
+          &bytesReceived, &outDataType);
       if (bytesReceived) {
-        /* Forward to audio device */
-        // TODO: check outDataType and convert outBuffer to short if needed.
+        // Forward to audio device.
         data = (short *)(void *)outBuffer;
         numSamples = bytesReceived >> 1;
         if (!swProcessAudio(data, numSamples)) {
@@ -295,7 +295,7 @@ bool swSpeakText(const char *text) {
           return true; // Abort synthesis
         }
       }
-    } while(PICO_STEP_BUSY == status);
+    } while(status == PICO_STEP_BUSY);
   }
   return true;
 }
