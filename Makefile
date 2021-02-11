@@ -23,8 +23,8 @@ ESPEAK_DATA=../espeak-ng/espeak-ng-data
 # IBMTTS
 # Install Voxin from http://oralux.org, with the language of your choice.
 # This is version 2.2.  Only English has been tested so far.
-#IBMTTS_LIB=/opt/oralux/voxin/lib/libvoxin.so
-IBMTTS_LIB=/opt/IBM/ibmtts/lib/libibmeci.so
+IBMTTS_LIB=/opt/oralux/voxin/lib/libvoxin.so
+#IBMTTS_LIB=-L/opt/IBM/ibmtts/lib -libmeci -letidev
 IBMTTS_DATA=/opt/IBM/ibmtts/voicedata/
 
 # PICOTTS
@@ -49,7 +49,7 @@ $(ESPEAK): engine.c espeak_engine.c util.c engine.h
 # Note that this cannot be compiled with -O2 due to unknown bugs.
 $(IBMTTS): engine.c ibmtts_engine.c util.c engine.h
 	mkdir -p $(dir $(IBMTTS))
-	$(CC) $(CFLAGS) -m32 -I/opt/IBM/ibmtts/inc -o $(IBMTTS) engine.c util.c ibmtts_engine.c $(IBMTTS_LIB)
+	$(CC) $(CFLAGS) -I/opt/IBM/ibmtts/inc -o $(IBMTTS) engine.c util.c ibmtts_engine.c $(IBMTTS_LIB)
 	cp -r $(IBMTTS_DATA) $(dir $(IBMTTS))
 
 $(PICOTTS): pico_engine.c engine.c util.c engine.h
